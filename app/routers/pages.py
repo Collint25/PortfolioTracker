@@ -22,3 +22,13 @@ def index(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
         name="index.html",
         context={"title": "Portfolio Tracker"},
     )
+
+
+@router.get("/settings", response_class=HTMLResponse)
+def settings(request: Request) -> HTMLResponse:
+    """Settings page for tag management."""
+    return templates.TemplateResponse(
+        request=request,
+        name="settings.html",
+        context={"title": "Settings - Portfolio Tracker"},
+    )

@@ -99,22 +99,22 @@
 **Goal:** Annotate trades with tags and notes
 
 **Deliverables:**
-- [ ] Tag CRUD (create, list, delete)
-- [ ] Assign/remove tags on transactions
-- [ ] Add comments to transactions
-- [ ] Tag management in settings
-- [ ] Filter transactions by tag
-- [ ] Inline tag editing (HTMX)
+- [x] Tag CRUD (create, list, delete)
+- [x] Assign/remove tags on transactions
+- [x] Add comments to transactions
+- [x] Tag management in settings
+- [x] Filter transactions by tag
+- [x] Inline tag editing (HTMX)
 
 **Tests:**
-- [ ] Tag CRUD operations
-- [ ] Tag assignment to transaction
-- [ ] Comment creation
+- [x] Tag CRUD operations
+- [x] Tag assignment to transaction
+- [x] Comment creation
 
 **Acceptance:**
-- Create custom tags with colors
-- Tag transactions, filter by tag
-- Add notes visible on detail page
+- [x] Create custom tags with colors
+- [x] Tag transactions, filter by tag
+- [x] Add notes visible on detail page
 
 ---
 

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Account
-from app.services import transaction_service
+from app.services import tag_service, transaction_service
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -17,12 +17,13 @@ templates = Jinja2Templates(directory="app/templates")
 def list_transactions(
     request: Request,
     db: Session = Depends(get_db),
-    account_id: int | None = None,
-    symbol: str | None = None,
-    type: str | None = None,
-    start_date: date | None = None,
-    end_date: date | None = None,
-    search: str | None = None,
+    account_id: str | None = Query(None),
+    symbol: str | None = Query(None),
+    type: str | None = Query(None),
+    tag_id: str | None = Query(None),
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    search: str | None = Query(None),
     sort_by: str = "trade_date",
     sort_dir: str = "desc",
     page: int = Query(1, ge=1),
@@ -30,14 +31,27 @@ def list_transactions(
     """List transactions with filtering, sorting, and pagination."""
     per_page = 50
 
+    # Convert empty strings to None and parse types
+    account_id_int = int(account_id) if account_id else None
+    tag_id_int = int(tag_id) if tag_id else None
+    symbol_val = symbol if symbol else None
+    type_val = type if type else None
+    search_val = search if search else None
+
+    # Parse dates
+    from datetime import datetime
+    start_date_val = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    end_date_val = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+
     transactions, total = transaction_service.get_transactions(
         db,
-        account_id=account_id,
-        symbol=symbol,
-        transaction_type=type,
-        start_date=start_date,
-        end_date=end_date,
-        search=search,
+        account_id=account_id_int,
+        symbol=symbol_val,
+        transaction_type=type_val,
+        tag_id=tag_id_int,
+        start_date=start_date_val,
+        end_date=end_date_val,
+        search=search_val,
         sort_by=sort_by,
         sort_dir=sort_dir,
         page=page,
@@ -51,6 +65,7 @@ def list_transactions(
     accounts = db.query(Account).order_by(Account.name).all()
     symbols = transaction_service.get_unique_symbols(db)
     types = transaction_service.get_unique_types(db)
+    tags = tag_service.get_all_tags(db)
 
     context = {
         "transactions": transactions,
@@ -61,13 +76,15 @@ def list_transactions(
         "accounts": accounts,
         "symbols": symbols,
         "types": types,
+        "tags": tags,
         # Current filter values
-        "current_account_id": account_id,
-        "current_symbol": symbol,
-        "current_type": type,
-        "current_start_date": start_date,
-        "current_end_date": end_date,
-        "current_search": search,
+        "current_account_id": account_id_int,
+        "current_symbol": symbol_val,
+        "current_type": type_val,
+        "current_tag_id": tag_id_int,
+        "current_start_date": start_date_val,
+        "current_end_date": end_date_val,
+        "current_search": search_val,
         "current_sort_by": sort_by,
         "current_sort_dir": sort_dir,
         "title": "Transactions",

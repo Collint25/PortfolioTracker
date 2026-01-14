@@ -1,0 +1,60 @@
+{% if error %}
+<div class="alert alert-error mb-4">
+    <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<div class="flex flex-wrap gap-2 mb-4">
+    {% for tag in tags %}
+    <div class="badge badge-{{ tag.color }} badge-lg gap-2">
+        {{ tag.name }}
+        <button
+            class="btn btn-ghost btn-xs"
+            hx-delete="/api/tags/{{ tag.id }}"
+            hx-target="#tag-management"
+            hx-confirm="Delete tag '{{ tag.name }}'?"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-4 h-4 stroke-current">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+    {% else %}
+    <p class="text-base-content/60">No tags created yet.</p>
+    {% endfor %}
+</div>
+
+<form
+    hx-post="/api/tags/"
+    hx-target="#tag-management"
+    class="flex gap-2 items-end"
+>
+    <div class="form-control">
+        <label class="label">
+            <span class="label-text">Tag Name</span>
+        </label>
+        <input
+            type="text"
+            name="name"
+            placeholder="e.g., Tax Loss"
+            class="input input-bordered input-sm w-40"
+            required
+        />
+    </div>
+    <div class="form-control">
+        <label class="label">
+            <span class="label-text">Color</span>
+        </label>
+        <select name="color" class="select select-bordered select-sm">
+            <option value="neutral">Neutral</option>
+            <option value="primary">Primary</option>
+            <option value="secondary">Secondary</option>
+            <option value="accent">Accent</option>
+            <option value="info">Info</option>
+            <option value="success">Success</option>
+            <option value="warning">Warning</option>
+            <option value="error">Error</option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Add Tag</button>
+</form>

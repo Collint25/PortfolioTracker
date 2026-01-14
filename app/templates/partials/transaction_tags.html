@@ -1,0 +1,47 @@
+<div class="flex flex-wrap gap-2 items-center">
+    {% for tag in tags %}
+    <div class="badge badge-{{ tag.color }} gap-1">
+        {{ tag.name }}
+        <button
+            class="btn btn-ghost btn-xs p-0"
+            hx-delete="/api/tags/transaction/{{ transaction_id }}/remove/{{ tag.id }}"
+            hx-target="#transaction-tags"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-3 h-3 stroke-current">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+    {% endfor %}
+
+    {% set assigned_tag_ids = tags | map(attribute='id') | list %}
+
+    {% if all_tags %}
+    <div class="dropdown dropdown-end">
+        <label tabindex="0" class="btn btn-ghost btn-xs">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-4 h-4 stroke-current">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add Tag
+        </label>
+        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40">
+            {% for tag in all_tags %}
+                {% if tag.id not in assigned_tag_ids %}
+                <li>
+                    <button
+                        hx-post="/api/tags/transaction/{{ transaction_id }}/add/{{ tag.id }}"
+                        hx-target="#transaction-tags"
+                    >
+                        <span class="badge badge-{{ tag.color }} badge-sm">{{ tag.name }}</span>
+                    </button>
+                </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if not tags and not all_tags %}
+    <span class="text-base-content/60 text-sm">No tags available. <a href="/settings" class="link link-primary">Create tags</a></span>
+    {% endif %}
+</div>

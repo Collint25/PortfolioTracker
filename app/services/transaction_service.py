@@ -4,6 +4,7 @@ from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
 from app.models import Transaction, Account
+from app.models.tag import transaction_tags
 
 
 def get_transactions(
@@ -15,6 +16,7 @@ def get_transactions(
     start_date: date | None = None,
     end_date: date | None = None,
     search: str | None = None,
+    tag_id: int | None = None,
     sort_by: str = "trade_date",
     sort_dir: str = "desc",
     page: int = 1,
@@ -46,6 +48,8 @@ def get_transactions(
                 Transaction.description.ilike(search_pattern),
             )
         )
+    if tag_id:
+        query = query.join(transaction_tags).filter(transaction_tags.c.tag_id == tag_id)
 
     # Get total count before pagination
     total = query.count()

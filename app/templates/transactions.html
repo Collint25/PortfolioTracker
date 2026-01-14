@@ -67,6 +67,19 @@
                 </select>
             </div>
 
+            <!-- Tag filter -->
+            <div class="form-control">
+                <label class="label"><span class="label-text">Tag</span></label>
+                <select name="tag_id" class="select select-bordered select-sm">
+                    <option value="">All Tags</option>
+                    {% for tag in tags %}
+                    <option value="{{ tag.id }}" {{ 'selected' if current_tag_id == tag.id else '' }}>
+                        {{ tag.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <!-- Date range -->
             <div class="form-control">
                 <label class="label"><span class="label-text">From</span></label>

@@ -67,6 +67,26 @@
                 <p class="font-mono text-xs">{{ transaction.external_reference_id }}</p>
             </div>
             {% endif %}
+
+            <div class="divider"></div>
+
+            <div>
+                <p class="text-sm text-base-content/60 mb-2">Tags</p>
+                <div id="transaction-tags" hx-get="/api/tags/transaction/{{ transaction.id }}" hx-trigger="load" hx-swap="innerHTML">
+                    <span class="loading loading-spinner loading-xs"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h3 class="card-title">Notes</h3>
+            <div id="comment-section" hx-get="/api/comments/transaction/{{ transaction.id }}" hx-trigger="load" hx-swap="innerHTML">
+                <span class="loading loading-spinner loading-sm"></span>
+                Loading comments...
+            </div>
         </div>
     </div>
 

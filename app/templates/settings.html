@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Settings</h1>
+
+    <div class="card bg-base-100 shadow-lg">
+        <div class="card-body">
+            <h2 class="card-title">Tag Management</h2>
+            <p class="text-sm text-base-content/70 mb-4">
+                Create and manage tags to categorize your transactions.
+            </p>
+            <div id="tag-management" hx-get="/api/tags/" hx-trigger="load" hx-swap="innerHTML">
+                <span class="loading loading-spinner loading-sm"></span>
+                Loading tags...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

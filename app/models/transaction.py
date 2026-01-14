@@ -1,10 +1,15 @@
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON, Date, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.comment import Comment
+    from app.models.tag import Tag
 
 
 class Transaction(Base, TimestampMixin):
@@ -35,3 +40,9 @@ class Transaction(Base, TimestampMixin):
 
     # Relationships
     account: Mapped["Account"] = relationship(back_populates="transactions")
+    tags: Mapped[list["Tag"]] = relationship(
+        secondary="transaction_tags", back_populates="transactions"
+    )
+    comments: Mapped[list["Comment"]] = relationship(
+        back_populates="transaction", cascade="all, delete-orphan"
+    )

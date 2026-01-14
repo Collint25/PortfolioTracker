@@ -39,31 +39,48 @@ def fetch_holdings(
     return response.body.get("positions", []) if response.body else []
 
 
-def fetch_transactions(
+def fetch_account_activities(
     client: SnapTrade,
     user_id: str,
     user_secret: str,
+    account_id: str,
     start_date: str | None = None,
     end_date: str | None = None,
 ) -> list[dict]:
     """
-    Fetch all transactions for user.
+    Fetch all transactions for a specific account.
 
+    Uses the per-account endpoint (non-deprecated).
     Handles pagination internally - SnapTrade returns max 1000 per request.
+    Response format: {"data": [...], "pagination": {...}}
     """
-    params = {
-        "user_id": user_id,
-        "user_secret": user_secret,
-    }
-    if start_date:
-        params["start_date"] = start_date
-    if end_date:
-        params["end_date"] = end_date
+    all_activities: list[dict] = []
+    offset = 0
+    limit = 1000
 
-    response = client.transactions_and_reporting.get_activities(
-        user_id=user_id,
-        user_secret=user_secret,
-        start_date=start_date,
-        end_date=end_date,
-    )
-    return response.body if response.body else []
+    while True:
+        response = client.account_information.get_account_activities(
+            account_id=account_id,
+            user_id=user_id,
+            user_secret=user_secret,
+            start_date=start_date,
+            end_date=end_date,
+            offset=offset,
+            limit=limit,
+        )
+
+        # Response is {"data": [...], "pagination": {...}}
+        body = response.body if response.body else {}
+        activities = body.get("data", [])
+        if not activities:
+            break
+
+        all_activities.extend(activities)
+
+        # If we got fewer than limit, we've reached the end
+        if len(activities) < limit:
+            break
+
+        offset += limit
+
+    return all_activities

@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.models import Account, Position, Transaction
 from app.services.snaptrade_client import (
+    fetch_account_activities,
     fetch_accounts,
     fetch_holdings,
-    fetch_transactions,
     get_snaptrade_client,
     get_user_credentials,
 )
@@ -136,69 +136,65 @@ def sync_positions(
 def sync_transactions(
     db: Session, client, user_id: str, user_secret: str
 ) -> int:
-    """Sync all transactions."""
-    transactions_data = fetch_transactions(client, user_id, user_secret)
+    """Sync all transactions using per-account endpoint."""
+    accounts = db.query(Account).all()
     count = 0
 
-    # Build account lookup by snaptrade_id
-    accounts = {a.snaptrade_id: a.id for a in db.query(Account).all()}
+    for account in accounts:
+        transactions_data = fetch_account_activities(
+            client, user_id, user_secret, account.snaptrade_id
+        )
 
-    for data in transactions_data:
-        snaptrade_id = data.get("id")
-        if not snaptrade_id:
-            continue
+        for data in transactions_data:
+            snaptrade_id = data.get("id")
+            if not snaptrade_id:
+                continue
 
-        transaction = db.query(Transaction).filter(
-            Transaction.snaptrade_id == snaptrade_id
-        ).first()
+            transaction = db.query(Transaction).filter(
+                Transaction.snaptrade_id == snaptrade_id
+            ).first()
 
-        # Get account_id from the transaction's account reference
-        account_ref = data.get("account", {})
-        account_snaptrade_id = account_ref.get("id") if isinstance(account_ref, dict) else None
-        account_id = accounts.get(account_snaptrade_id) if account_snaptrade_id else None
+            # Account ID is known from the loop context
+            account_id = account.id
 
-        if not account_id:
-            # Skip transactions without matching account
-            continue
+            symbol = data.get("symbol", {})
+            symbol_str = symbol.get("symbol", "") if isinstance(symbol, dict) else str(symbol) if symbol else None
 
-        symbol = data.get("symbol", {})
-        symbol_str = symbol.get("symbol", "") if isinstance(symbol, dict) else str(symbol) if symbol else None
+            trade_date = _parse_date(data.get("trade_date"))
+            settlement_date = _parse_date(data.get("settlement_date"))
 
-        trade_date = _parse_date(data.get("trade_date"))
-        settlement_date = _parse_date(data.get("settlement_date"))
-
-        if transaction:
-            # Update existing
-            transaction.symbol = symbol_str
-            transaction.trade_date = trade_date
-            transaction.settlement_date = settlement_date
-            transaction.type = data.get("type", "UNKNOWN")
-            transaction.quantity = _to_decimal(data.get("units"))
-            transaction.price = _to_decimal(data.get("price"))
-            transaction.amount = Decimal(str(data.get("amount", 0)))
-            transaction.currency = data.get("currency", {}).get("code", "USD")
-            transaction.description = data.get("description")
-            transaction.external_reference_id = data.get("external_reference_id")
-            transaction._raw_json = data
-        else:
-            # Create new
-            transaction = Transaction(
-                snaptrade_id=snaptrade_id,
-                account_id=account_id,
-                external_reference_id=data.get("external_reference_id"),
-                symbol=symbol_str,
-                trade_date=trade_date,
-                settlement_date=settlement_date,
-                type=data.get("type", "UNKNOWN"),
-                quantity=_to_decimal(data.get("units")),
-                price=_to_decimal(data.get("price")),
-                amount=Decimal(str(data.get("amount", 0))),
-                currency=data.get("currency", {}).get("code", "USD"),
-                description=data.get("description"),
-                _raw_json=data,
-            )
-            db.add(transaction)
-        count += 1
+            if transaction:
+                # Update existing
+                transaction.symbol = symbol_str
+                transaction.trade_date = trade_date
+                transaction.settlement_date = settlement_date
+                transaction.type = data.get("type", "UNKNOWN")
+                transaction.quantity = _to_decimal(data.get("units"))
+                transaction.price = _to_decimal(data.get("price"))
+                transaction.amount = Decimal(str(data.get("amount", 0)))
+                transaction.currency = data.get("currency", {}).get("code", "USD")
+                transaction.description = data.get("description")
+                transaction.external_reference_id = data.get("external_reference_id")
+                transaction._raw_json = data
+            else:
+                # Create new
+                transaction = Transaction(
+                    snaptrade_id=snaptrade_id,
+                    account_id=account_id,
+                    external_reference_id=data.get("external_reference_id"),
+                    symbol=symbol_str,
+                    trade_date=trade_date,
+                    settlement_date=settlement_date,
+                    type=data.get("type", "UNKNOWN"),
+                    quantity=_to_decimal(data.get("units")),
+                    price=_to_decimal(data.get("price")),
+                    amount=Decimal(str(data.get("amount", 0))),
+                    currency=data.get("currency", {}).get("code", "USD"),
+                    description=data.get("description"),
+                    _raw_json=data,
+                )
+                db.add(transaction)
+            count += 1
 
     db.commit()
     return count

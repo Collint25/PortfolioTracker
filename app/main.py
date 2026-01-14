@@ -3,7 +3,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app.logging_config import configure_logging
 from app.routers import accounts, comments, pages, sync, tags, trade_groups, transactions
+
+# Configure logging at startup
+configure_logging()
 
 app = FastAPI(title="Portfolio Tracker")
 

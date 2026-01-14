@@ -1,6 +1,23 @@
 # Portfolio Tracker - Project Plan
 
-## Phase 0: Init
+## Status Overview
+
+| Phase | Name | Status |
+|-------|------|--------|
+| 0 | Init | ✅ Complete |
+| 1 | Foundation | ✅ Complete |
+| 2 | Data Sync | ✅ Complete |
+| 3 | Transaction UI | ✅ Complete |
+| 4 | Tags & Comments | ✅ Complete |
+| 5 | Trade Groups (Multi-leg) | ✅ Complete |
+| 6 | Logging & SnapTrade API Update | ✅ Complete |
+| 7 | Positions View | ⬜ Not Started |
+| 8 | Manual Transactions | ⬜ Not Started |
+| 9 | Metrics & Dashboard | ⬜ Not Started |
+
+---
+
+## Phase 0: Init ✅
 
 **Goal:** Initialize git repo and create project documentation
 
@@ -18,7 +35,7 @@
 
 ---
 
-## Phase 1: Foundation
+## Phase 1: Foundation ✅
 
 **Goal:** Project scaffolding, database, SnapTrade auth flow
 
@@ -44,7 +61,7 @@
 
 ---
 
-## Phase 2: Data Sync
+## Phase 2: Data Sync ✅
 
 **Goal:** Fetch all transactions from SnapTrade, store locally
 
@@ -69,7 +86,7 @@
 
 ---
 
-## Phase 3: Transaction UI
+## Phase 3: Transaction UI ✅
 
 **Goal:** View and filter transaction history
 
@@ -94,7 +111,7 @@
 
 ---
 
-## Phase 4: Tags & Comments
+## Phase 4: Tags & Comments ✅
 
 **Goal:** Annotate trades with tags and notes
 
@@ -118,7 +135,7 @@
 
 ---
 
-## Phase 5: Trade Groups (Multi-leg)
+## Phase 5: Trade Groups (Multi-leg) ✅
 
 **Goal:** Group related option legs into strategies
 
@@ -182,7 +199,129 @@ calendar_spread, diagonal_spread, covered_call, protective_put, collar, custom
 
 ---
 
-## Phase 6: Metrics & Dashboard
+## Phase 6: Logging & SnapTrade API Update ✅
+
+**Goal:** Add logging configuration and fix deprecated SnapTrade endpoint
+
+**Deliverables:**
+- [x] Logging configuration (capture SDK warnings in stdout)
+- [x] Update SnapTrade API (replace deprecated get_activities with per-account endpoint)
+
+**Tests:**
+- [x] Logging output appears on server start
+- [x] Sync completes without deprecation warning (per-account endpoint used)
+
+**Acceptance:**
+- Logging shows SDK warnings in stdout
+- Sync uses new per-account endpoint without deprecation warning
+
+**Implementation Notes:**
+
+Files created:
+- `app/logging_config.py` - Logging setup module with stdout handler, INFO level, formatted output
+
+Files modified:
+- `app/main.py` - Import and call `configure_logging()` at startup
+- `app/services/snaptrade_client.py` - Added `fetch_account_activities()` using `account_information.get_account_activities()` with pagination support
+- `app/services/sync_service.py` - `sync_transactions()` now loops through accounts and fetches per-account activities
+
+Key changes:
+- Replaced `transactions_and_reporting.get_activities()` (deprecated) with `account_information.get_account_activities()` (per-account)
+- Per-account endpoint returns `{"data": [...], "pagination": {...}}` - extract activities from `data` key
+- Pagination handled internally with offset/limit (1000 per request)
+- Account ID now resolved from loop context instead of parsing response (per-account response doesn't include `account` field)
+- Added `logger.exception()` to sync router for error visibility
+
+**Manual Testing Checklist:**
+- [x] Start server and verify logging output appears in stdout
+- [x] Run sync from UI
+- [x] Verify no deprecation warning in logs
+- [x] Verify transactions still sync correctly (1656 transactions synced)
+
+---
+
+## Phase 7: Positions View ⬜
+
+**Goal:** Fix 404 error when viewing account positions
+
+**Deliverables:**
+- [ ] Account positions route and view
+- [ ] Position list with market value and gain/loss
+
+**Tests:**
+- [ ] Position view renders with valid account
+- [ ] Position view returns 404 for invalid account
+
+**Acceptance:**
+- Can view account positions without 404 error
+- Position list shows symbol, quantity, cost, current price, gain/loss
+
+**Implementation Notes:**
+
+Files created:
+- `app/services/position_service.py` - Position queries
+- `app/templates/account_positions.html` - Positions page
+- `app/templates/partials/position_list.html` - Positions partial
+
+Files modified:
+- `app/routers/accounts.py` - Add `/{account_id}/positions` route
+- `app/main.py` - Change accounts prefix from `/api/accounts` to `/accounts`
+- `app/templates/base.html` - Fix accounts nav link
+
+**Manual Testing Checklist:**
+- [ ] Navigate to Accounts page
+- [ ] Click "View Positions" on an account
+- [ ] Verify positions load without 404
+- [ ] Verify market value and gain/loss display correctly
+
+---
+
+## Phase 8: Manual Transactions ⬜
+
+**Goal:** Allow creating, editing, and deleting transactions manually (without SnapTrade)
+
+**Deliverables:**
+- [ ] Database migration (make snaptrade_id nullable, add is_manual flag)
+- [ ] Manual transaction create/edit/delete
+- [ ] Manual transactions support tags, comments, trade groups (full feature parity)
+
+**Tests:**
+- [ ] Manual transaction CRUD
+- [ ] Cannot edit/delete synced transactions
+
+**Acceptance:**
+- Can create manual transactions with full feature parity
+- Can edit and delete manual transactions
+- Synced transactions are protected from edit/delete
+
+**Implementation Notes:**
+
+Files created:
+- `app/templates/transaction_form.html` - Manual transaction form
+- `app/templates/partials/transaction_form_content.html` - Form partial
+- `alembic/versions/xxxx_make_snaptrade_id_optional.py` - Migration
+
+Files modified:
+- `app/models/transaction.py` - snaptrade_id nullable, add is_manual
+- `app/services/transaction_service.py` - Add manual transaction CRUD
+- `app/routers/transactions.py` - Add create/edit/delete routes
+- `app/templates/transactions.html` - Add "New Transaction" button
+- `app/templates/transaction_detail.html` - Add edit/delete for manual transactions
+
+**Manual Testing Checklist:**
+- [ ] Go to Transactions page
+- [ ] Click "New Transaction" button
+- [ ] Fill out form and submit
+- [ ] Verify new transaction appears in list
+- [ ] Click into manual transaction detail
+- [ ] Add tags and comments
+- [ ] Edit the transaction
+- [ ] Delete the transaction
+- [ ] Verify synced transactions have no edit/delete buttons
+
+---
+
+## Phase 9: Metrics & Dashboard ⬜
 
 **Goal:** P/L tracking and performance overview
 

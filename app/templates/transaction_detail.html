@@ -76,6 +76,15 @@
                     <span class="loading loading-spinner loading-xs"></span>
                 </div>
             </div>
+
+            <div class="divider"></div>
+
+            <div>
+                <p class="text-sm text-base-content/60 mb-2">Trade Groups</p>
+                <div id="transaction-trade-groups" hx-get="/trade-groups/transaction/{{ transaction.id }}" hx-trigger="load" hx-swap="innerHTML">
+                    <span class="loading loading-spinner loading-xs"></span>
+                </div>
+            </div>
         </div>
     </div>
 

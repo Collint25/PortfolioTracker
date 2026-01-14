@@ -1,0 +1,57 @@
+{% if groups %}
+<div class="overflow-x-auto">
+    <table class="table table-zebra">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Strategy</th>
+                <th class="text-center">Transactions</th>
+                <th class="text-right">Combined P/L</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in groups %}
+            <tr class="hover cursor-pointer" onclick="window.location='/trade-groups/{{ item.group.id }}'">
+                <td class="font-semibold">{{ item.group.name }}</td>
+                <td>
+                    {% if item.group.strategy_type %}
+                    <span class="badge badge-outline badge-sm">{{ item.group.strategy_type | replace('_', ' ') | title }}</span>
+                    {% else %}
+                    <span class="text-base-content/50">-</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    <span class="badge badge-ghost">{{ item.transaction_count }}</span>
+                </td>
+                <td class="text-right font-mono {{ 'text-success' if item.pl > 0 else 'text-error' if item.pl < 0 else '' }}">
+                    ${{ '{:,.2f}'.format(item.pl) }}
+                </td>
+                <td class="text-sm text-base-content/60">
+                    {{ item.group.created_at.strftime('%b %d, %Y') }}
+                </td>
+                <td>
+                    <button
+                        class="btn btn-ghost btn-xs text-error"
+                        hx-delete="/trade-groups/{{ item.group.id }}"
+                        hx-target="#trade-group-list"
+                        hx-confirm="Delete trade group '{{ item.group.name }}'?"
+                        onclick="event.stopPropagation()"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-4 h-4 stroke-current">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-8 text-base-content/60">
+    <p>No trade groups created yet.</p>
+    <p class="text-sm mt-2">Create a new group above or use the suggested groups.</p>
+</div>
+{% endif %}

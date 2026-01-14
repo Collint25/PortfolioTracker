@@ -5,6 +5,7 @@ from app.models.transaction import Transaction
 from app.models.security import SecurityInfo
 from app.models.tag import Tag, transaction_tags
 from app.models.comment import Comment
+from app.models.trade_group import TradeGroup, trade_group_transactions
 
 __all__ = [
     "Base",
@@ -14,5 +15,7 @@ __all__ = [
     "SecurityInfo",
     "Tag",
     "Comment",
+    "TradeGroup",
     "transaction_tags",
+    "trade_group_transactions",
 ]

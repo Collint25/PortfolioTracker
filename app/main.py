@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.routers import accounts, comments, pages, sync, tags, transactions
+from app.routers import accounts, comments, pages, sync, tags, trade_groups, transactions
 
 app = FastAPI(title="Portfolio Tracker")
 
@@ -16,6 +16,7 @@ app.include_router(sync.router, prefix="/api/sync", tags=["sync"])
 app.include_router(transactions.router, prefix="/transactions", tags=["transactions"])
 app.include_router(tags.router, prefix="/api/tags", tags=["tags"])
 app.include_router(comments.router, prefix="/api/comments", tags=["comments"])
+app.include_router(trade_groups.router, prefix="/trade-groups", tags=["trade-groups"])
 
 
 @app.get("/health")

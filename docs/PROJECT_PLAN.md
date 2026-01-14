@@ -123,22 +123,62 @@
 **Goal:** Group related option legs into strategies
 
 **Deliverables:**
-- [ ] Trade group model and CRUD
-- [ ] Auto-suggest groups (same external_reference_id)
-- [ ] Manual group creation UI
-- [ ] Strategy type classification (spread, condor, etc)
-- [ ] Group list view
-- [ ] Combined P/L for group
+- [x] Trade group model and CRUD
+- [x] Auto-suggest groups (same external_reference_id)
+- [x] Manual group creation UI
+- [x] Strategy type classification (spread, condor, etc)
+- [x] Group list view
+- [x] Combined P/L for group
 
 **Tests:**
-- [ ] Auto-grouping logic
-- [ ] Manual group CRUD
-- [ ] P/L calculation for group
+- [x] Auto-grouping logic
+- [x] Manual group CRUD
+- [x] P/L calculation for group
 
 **Acceptance:**
-- Related legs grouped together
-- Can manually create/edit groups
-- Group shows combined P/L
+- [x] Related legs grouped together
+- [x] Can manually create/edit groups
+- [x] Group shows combined P/L
+
+**Implementation Notes:**
+
+Files created:
+- `app/models/trade_group.py` - TradeGroup model + M2M association table
+- `app/services/trade_group_service.py` - CRUD, P/L calc, auto-grouping logic
+- `app/routers/trade_groups.py` - All endpoints under /trade-groups
+- `app/templates/trade_groups.html` - Main list page
+- `app/templates/trade_group_detail.html` - Detail/edit page
+- `app/templates/partials/trade_group_list.html` - List partial
+- `app/templates/partials/trade_group_suggestions.html` - Auto-suggest UI
+- `app/templates/partials/trade_group_transactions.html` - Txns in group
+- `app/templates/partials/trade_group_detail_content.html` - Detail partial
+- `app/templates/partials/transaction_trade_groups.html` - Groups on txn detail
+- `alembic/versions/1b71213d8c1a_add_trade_groups.py` - Migration
+- `tests/test_trade_groups.py` - 14 tests
+
+Files modified:
+- `app/models/__init__.py` - Export TradeGroup
+- `app/models/transaction.py` - Added trade_groups relationship
+- `app/main.py` - Registered trade_groups router
+- `app/templates/base.html` - Added nav link
+- `app/templates/transaction_detail.html` - Added trade groups section
+
+Strategy types: vertical_spread, iron_condor, iron_butterfly, straddle, strangle,
+calendar_spread, diagonal_spread, covered_call, protective_put, collar, custom
+
+**Manual Testing Checklist:**
+- [ ] Navigate to Trade Groups page from nav
+- [ ] Create a new trade group with name, strategy type, description
+- [ ] View suggested groups (requires transactions with same external_reference_id)
+- [ ] Create group from suggestion (one-click)
+- [ ] Click into group detail page
+- [ ] Edit group name/strategy/description
+- [ ] Remove a transaction from a group
+- [ ] Delete a group (confirm redirect to list)
+- [ ] On transaction detail, view assigned groups
+- [ ] Add transaction to existing group from dropdown
+- [ ] Verify combined P/L calculates correctly (sum of transaction amounts)
+- [ ] Verify group appears on all member transactions' detail pages
 
 ---
 

@@ -6,6 +6,20 @@ __pycache__/
 
 # Database
 *.db
+*.db-journal
 
 # Virtual environment
 .venv/
+.uv/
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Coverage
+.coverage
+htmlcov/

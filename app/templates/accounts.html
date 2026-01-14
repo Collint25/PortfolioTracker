@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="prose mb-6">
+    <h1>Accounts</h1>
+</div>
+
+<div id="account-list" hx-get="/api/accounts" hx-trigger="load" hx-swap="innerHTML">
+    <span class="loading loading-spinner loading-lg"></span>
+</div>
+{% endblock %}

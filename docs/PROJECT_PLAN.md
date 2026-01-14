@@ -23,24 +23,24 @@
 **Goal:** Project scaffolding, database, SnapTrade auth flow
 
 **Deliverables:**
-- [ ] uv project init with all dependencies
-- [ ] Tailwind + DaisyUI configured
-- [ ] SQLAlchemy models for all tables
-- [ ] Alembic migrations
+- [x] uv project init with all dependencies
+- [x] Tailwind + DaisyUI configured (via CDN)
+- [x] SQLAlchemy models for all tables
+- [x] Alembic migrations
 - [ ] SnapTrade client wrapper (init SDK, register user, get auth URL)
 - [ ] Settings page with "Connect Fidelity" button
 - [ ] OAuth callback handler
-- [ ] Base template with nav, theme switcher
+- [x] Base template with nav, theme switcher
 
 **Tests:**
-- [ ] DB models create/read
+- [x] DB models create/read (in-memory test DB)
 - [ ] SnapTrade client mocked - auth URL generation
-- [ ] Settings page renders
+- [x] Settings page renders (index + health check tests passing)
 
 **Acceptance:**
-- App starts, shows settings page
-- Can generate SnapTrade auth URL
-- DB tables created via migration
+- [x] App starts, shows settings page
+- [ ] Can generate SnapTrade auth URL
+- [x] DB tables created via migration
 
 ---
 

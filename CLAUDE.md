@@ -2,6 +2,8 @@
 
 Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 
+> **Note:** Keep this file updated as features are completed. Update the Project Status section after finishing each milestone.
+
 ## Stack
 - Backend: FastAPI + SQLAlchemy + SQLite
 - Frontend: Jinja2 + HTMX + Tailwind/DaisyUI
@@ -25,8 +27,55 @@ Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 - Services handle logic, routes handle HTTP
 - Config values in app/config.py not hardcoded
 
+## Architecture
+
+### Data flow
+```
+SnapTrade API → sync service → SQLite → services → routes → HTMX partials
+```
+
+### Domain models
+- **Account** - Fidelity account (brokerage, IRA, etc.)
+- **Position** - Current holding (symbol, quantity, cost basis)
+- **Transaction** - Trade history (buy, sell, dividend, etc.)
+- **SecurityInfo** - Cached ticker metadata
+
+### Sync strategy
+- Daily cron triggers full sync
+- Transactions use `external_reference_id` to group multi-leg options
+- Upsert by SnapTrade's unique IDs to avoid duplicates
+- Store raw API response in `_raw_json` column for debugging
+
+### HTMX patterns
+- Full page loads return base template
+- HX-Request header triggers partial responses
+- Use `hx-swap="innerHTML"` for in-place updates
+- Loading states via `hx-indicator`
+
 ## SnapTrade notes
 - Data refreshes once/day (Fidelity limitation)
 - external_reference_id groups multi-leg trades
 - Rate limit: 250 req/min
 - Transactions paginate at 1000/request
+- Auth: user_id + user_secret per connection
+
+## Project Status
+
+### Completed
+- [x] Project scaffold (models, routers, services, templates)
+- [x] Database layer (SQLAlchemy + Alembic)
+- [x] Base UI (DaisyUI + HTMX)
+- [x] Initial migration + dependency install
+- [x] Tests passing
+
+### In Progress
+- [ ] SnapTrade auth flow (user connection)
+
+### Backlog
+- [ ] Account sync service
+- [ ] Position sync service
+- [ ] Transaction sync service
+- [ ] Dashboard with portfolio summary
+- [ ] Position detail views
+- [ ] Transaction history views
+- [ ] Daily sync cron job

@@ -2,7 +2,9 @@
 
 Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 
-> **Note:** Keep this file updated as features are completed. Update the Project Status section after finishing each milestone.
+> **Note:** Keep project status updated as features are completed:
+> - **This file (CLAUDE.md):** Update the Project Status section with high-level progress
+> - **docs/PROJECT_PLAN.md:** Update with granular deliverables and acceptance criteria per phase
 
 ## Stack
 - Backend: FastAPI + SQLAlchemy + SQLite

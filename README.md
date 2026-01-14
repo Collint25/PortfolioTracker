@@ -53,9 +53,13 @@ The app will be available at `http://127.0.0.1:8000`
 Create a `.env` file with the following variables:
 
 ```env
-# SnapTrade credentials
+# SnapTrade API credentials
 SNAPTRADE_CLIENT_ID=your_client_id
 SNAPTRADE_CONSUMER_KEY=your_consumer_key
+
+# SnapTrade user (from registered user)
+SNAPTRADE_USER_ID=your_user_id
+SNAPTRADE_USER_SECRET=your_user_secret
 
 # Database (optional, defaults to SQLite)
 DATABASE_URL=sqlite:///./portfolio.db

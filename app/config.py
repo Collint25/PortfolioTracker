@@ -9,8 +9,14 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
     database_url: str = "sqlite:///./portfolio.db"
+
+    # SnapTrade API credentials
     snaptrade_client_id: str = ""
     snaptrade_consumer_key: str = ""
+
+    # SnapTrade user credentials
+    snaptrade_user_id: str = ""
+    snaptrade_user_secret: str = ""
 
 
 @lru_cache

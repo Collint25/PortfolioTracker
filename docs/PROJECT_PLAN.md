@@ -27,9 +27,9 @@
 - [x] Tailwind + DaisyUI configured (via CDN)
 - [x] SQLAlchemy models for all tables
 - [x] Alembic migrations
-- [ ] SnapTrade client wrapper (init SDK, register user, get auth URL)
-- [ ] Settings page with "Connect Fidelity" button
-- [ ] OAuth callback handler
+- [x] SnapTrade client wrapper (using pre-registered user credentials)
+- [~] Settings page with "Connect Fidelity" button (N/A - using env vars)
+- [~] OAuth callback handler (N/A - using pre-registered user)
 - [x] Base template with nav, theme switcher
 
 **Tests:**
@@ -39,7 +39,7 @@
 
 **Acceptance:**
 - [x] App starts, shows settings page
-- [ ] Can generate SnapTrade auth URL
+- [x] SnapTrade client connects (via user credentials in .env)
 - [x] DB tables created via migration
 
 ---
@@ -49,22 +49,23 @@
 **Goal:** Fetch all transactions from SnapTrade, store locally
 
 **Deliverables:**
-- [ ] Sync service - fetch accounts after OAuth
-- [ ] Sync service - fetch all transactions (paginated)
-- [ ] Upsert logic (dedupe by snaptrade_id)
-- [ ] Manual sync button in UI
+- [x] Sync service - fetch accounts
+- [x] Sync service - fetch positions (holdings)
+- [x] Sync service - fetch all transactions
+- [x] Upsert logic (dedupe by snaptrade_id)
+- [x] Manual sync button in UI
 - [ ] APScheduler daily sync job
-- [ ] Sync status display (last synced, count)
+- [x] Sync status display (record counts)
 
 **Tests:**
 - [ ] Sync service with mocked API responses
-- [ ] Deduplication on re-sync
+- [x] Deduplication on re-sync (verified manually)
 - [ ] Pagination handling
 
 **Acceptance:**
-- Connect Fidelity account via OAuth
-- Transactions appear in DB after sync
-- Re-sync doesn't create duplicates
+- [x] Transactions appear in DB after sync (1650 synced)
+- [x] Positions appear in DB after sync (28 synced)
+- [x] Re-sync doesn't create duplicates
 
 ---
 

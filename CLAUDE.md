@@ -69,15 +69,15 @@ SnapTrade API → sync service → SQLite → services → routes → HTMX parti
 - [x] Base UI (DaisyUI + HTMX)
 - [x] Initial migration + dependency install
 - [x] Tests passing
+- [x] SnapTrade client wrapper
+- [x] Full sync service (accounts, positions, transactions)
+- [x] Manual sync button with status display
 
 ### In Progress
-- [ ] SnapTrade auth flow (user connection)
+- [ ] Transaction history UI
 
 ### Backlog
-- [ ] Account sync service
-- [ ] Position sync service
-- [ ] Transaction sync service
 - [ ] Dashboard with portfolio summary
 - [ ] Position detail views
 - [ ] Transaction history views
-- [ ] Daily sync cron job
+- [ ] Daily sync cron job (APScheduler)

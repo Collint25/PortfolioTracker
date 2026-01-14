@@ -1,13 +1,32 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero min-h-[60vh]">
+<div class="hero min-h-[40vh]">
     <div class="hero-content text-center">
         <div class="max-w-md">
             <h1 class="text-5xl font-bold">Portfolio Tracker</h1>
             <p class="py-6">Track your Fidelity investments synced via SnapTrade.</p>
-            <a href="/api/accounts" class="btn btn-primary">View Accounts</a>
+            <div class="flex gap-4 justify-center">
+                <a href="/api/accounts" class="btn btn-primary">View Accounts</a>
+                <button
+                    class="btn btn-secondary"
+                    hx-post="/api/sync/"
+                    hx-target="#sync-result"
+                    hx-indicator="#sync-spinner"
+                >
+                    <span id="sync-spinner" class="loading loading-spinner loading-sm htmx-indicator"></span>
+                    Sync Now
+                </button>
+            </div>
         </div>
+    </div>
+</div>
+
+<div id="sync-result" class="max-w-md mx-auto mt-4"></div>
+
+<div class="stats shadow mx-auto mt-8" hx-get="/api/sync/status" hx-trigger="load, syncComplete from:body" hx-swap="innerHTML">
+    <div class="stat">
+        <div class="stat-title">Loading...</div>
     </div>
 </div>
 {% endblock %}

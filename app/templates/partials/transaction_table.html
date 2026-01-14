@@ -1,0 +1,115 @@
+<div class="overflow-x-auto">
+    <table class="table table-zebra table-sm">
+        <thead>
+            <tr>
+                <th>
+                    <a
+                        href="?sort_by=trade_date&sort_dir={{ 'asc' if current_sort_by == 'trade_date' and current_sort_dir == 'desc' else 'desc' }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+                        hx-get="/transactions?sort_by=trade_date&sort_dir={{ 'asc' if current_sort_by == 'trade_date' and current_sort_dir == 'desc' else 'desc' }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+                        hx-target="#transaction-table"
+                        hx-push-url="true"
+                        class="link link-hover"
+                    >
+                        Date
+                        {% if current_sort_by == 'trade_date' %}
+                            {{ '↓' if current_sort_dir == 'desc' else '↑' }}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a
+                        href="?sort_by=symbol&sort_dir={{ 'asc' if current_sort_by == 'symbol' and current_sort_dir == 'desc' else 'desc' }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+                        hx-get="/transactions?sort_by=symbol&sort_dir={{ 'asc' if current_sort_by == 'symbol' and current_sort_dir == 'desc' else 'desc' }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+                        hx-target="#transaction-table"
+                        hx-push-url="true"
+                        class="link link-hover"
+                    >
+                        Symbol
+                        {% if current_sort_by == 'symbol' %}
+                            {{ '↓' if current_sort_dir == 'desc' else '↑' }}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>Type</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>
+                    <a
+                        href="?sort_by=amount&sort_dir={{ 'asc' if current_sort_by == 'amount' and current_sort_dir == 'desc' else 'desc' }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+                        hx-get="/transactions?sort_by=amount&sort_dir={{ 'asc' if current_sort_by == 'amount' and current_sort_dir == 'desc' else 'desc' }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+                        hx-target="#transaction-table"
+                        hx-push-url="true"
+                        class="link link-hover"
+                    >
+                        Amount
+                        {% if current_sort_by == 'amount' %}
+                            {{ '↓' if current_sort_dir == 'desc' else '↑' }}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>Account</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for txn in transactions %}
+            <tr
+                class="hover cursor-pointer"
+                hx-get="/transactions/{{ txn.id }}"
+                hx-push-url="true"
+                hx-target="body"
+            >
+                <td>{{ txn.trade_date.strftime('%Y-%m-%d') if txn.trade_date else 'N/A' }}</td>
+                <td class="font-mono font-semibold">{{ txn.symbol or '-' }}</td>
+                <td>
+                    <span class="badge badge-sm {{ 'badge-success' if txn.type == 'BUY' else 'badge-error' if txn.type == 'SELL' else 'badge-info' }}">
+                        {{ txn.type }}
+                    </span>
+                </td>
+                <td class="text-right">{{ '{:,.2f}'.format(txn.quantity) if txn.quantity else '-' }}</td>
+                <td class="text-right">${{ '{:,.2f}'.format(txn.price) if txn.price else '-' }}</td>
+                <td class="text-right {{ 'text-success' if txn.amount > 0 else 'text-error' if txn.amount < 0 else '' }}">
+                    ${{ '{:,.2f}'.format(txn.amount) }}
+                </td>
+                <td class="text-sm text-base-content/70">{{ txn.account.name if txn.account else 'N/A' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center py-8 text-base-content/50">
+                    No transactions found
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="flex justify-center mt-4">
+    <div class="join">
+        {% if page > 1 %}
+        <a
+            href="?page={{ page - 1 }}&sort_by={{ current_sort_by }}&sort_dir={{ current_sort_dir }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+            hx-get="/transactions?page={{ page - 1 }}&sort_by={{ current_sort_by }}&sort_dir={{ current_sort_dir }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+            hx-target="#transaction-table"
+            hx-push-url="true"
+            class="join-item btn btn-sm"
+        >«</a>
+        {% endif %}
+
+        <span class="join-item btn btn-sm btn-disabled">
+            Page {{ page }} of {{ total_pages }}
+        </span>
+
+        {% if page < total_pages %}
+        <a
+            href="?page={{ page + 1 }}&sort_by={{ current_sort_by }}&sort_dir={{ current_sort_dir }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+            hx-get="/transactions?page={{ page + 1 }}&sort_by={{ current_sort_by }}&sort_dir={{ current_sort_dir }}&search={{ current_search or '' }}&account_id={{ current_account_id or '' }}&symbol={{ current_symbol or '' }}&type={{ current_type or '' }}&start_date={{ current_start_date or '' }}&end_date={{ current_end_date or '' }}"
+            hx-target="#transaction-table"
+            hx-push-url="true"
+            class="join-item btn btn-sm"
+        >»</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

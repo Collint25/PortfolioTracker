@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Transactions</h1>
+    <span class="badge badge-lg">{{ total }} total</span>
+</div>
+
+<!-- Filters -->
+<div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+        <form
+            hx-get="/transactions"
+            hx-target="#transaction-table"
+            hx-trigger="submit, change from:select"
+            hx-push-url="true"
+            class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4"
+        >
+            <!-- Search -->
+            <div class="form-control">
+                <label class="label"><span class="label-text">Search</span></label>
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ current_search or '' }}"
+                    placeholder="Symbol or description"
+                    class="input input-bordered input-sm"
+                />
+            </div>
+
+            <!-- Account filter -->
+            <div class="form-control">
+                <label class="label"><span class="label-text">Account</span></label>
+                <select name="account_id" class="select select-bordered select-sm">
+                    <option value="">All Accounts</option>
+                    {% for account in accounts %}
+                    <option value="{{ account.id }}" {{ 'selected' if current_account_id == account.id else '' }}>
+                        {{ account.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Symbol filter -->
+            <div class="form-control">
+                <label class="label"><span class="label-text">Symbol</span></label>
+                <select name="symbol" class="select select-bordered select-sm">
+                    <option value="">All Symbols</option>
+                    {% for sym in symbols %}
+                    <option value="{{ sym }}" {{ 'selected' if current_symbol == sym else '' }}>
+                        {{ sym }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Type filter -->
+            <div class="form-control">
+                <label class="label"><span class="label-text">Type</span></label>
+                <select name="type" class="select select-bordered select-sm">
+                    <option value="">All Types</option>
+                    {% for t in types %}
+                    <option value="{{ t }}" {{ 'selected' if current_type == t else '' }}>
+                        {{ t }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date range -->
+            <div class="form-control">
+                <label class="label"><span class="label-text">From</span></label>
+                <input
+                    type="date"
+                    name="start_date"
+                    value="{{ current_start_date or '' }}"
+                    class="input input-bordered input-sm"
+                />
+            </div>
+
+            <div class="form-control">
+                <label class="label"><span class="label-text">To</span></label>
+                <input
+                    type="date"
+                    name="end_date"
+                    value="{{ current_end_date or '' }}"
+                    class="input input-bordered input-sm"
+                />
+            </div>
+
+            <!-- Hidden sort fields -->
+            <input type="hidden" name="sort_by" value="{{ current_sort_by }}" />
+            <input type="hidden" name="sort_dir" value="{{ current_sort_dir }}" />
+
+            <!-- Submit button -->
+            <div class="form-control md:col-span-3 lg:col-span-6">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Transaction table -->
+<div id="transaction-table">
+    {% include "partials/transaction_table.html" %}
+</div>
+{% endblock %}

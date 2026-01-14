@@ -74,23 +74,23 @@
 **Goal:** View and filter transaction history
 
 **Deliverables:**
-- [ ] Transaction list page (table)
-- [ ] Filters: date range, symbol, type, account
-- [ ] Search by symbol/description
-- [ ] Sorting by date, symbol, amount
-- [ ] Transaction detail page
-- [ ] HTMX partial updates for filters
-- [ ] Pagination
+- [x] Transaction list page (table)
+- [x] Filters: date range, symbol, type, account
+- [x] Search by symbol/description
+- [x] Sorting by date, symbol, amount
+- [x] Transaction detail page
+- [x] HTMX partial updates for filters
+- [x] Pagination
 
 **Tests:**
-- [ ] List endpoint returns correct data
-- [ ] Filters work correctly
-- [ ] Detail page renders
+- [x] List endpoint returns correct data
+- [x] Filters work correctly
+- [x] Detail page renders (404 for missing)
 
 **Acceptance:**
-- Can browse all transactions
-- Filters narrow results correctly
-- Clicking row shows detail
+- [x] Can browse all transactions
+- [x] Filters narrow results correctly
+- [x] Clicking row shows detail
 
 ---
 

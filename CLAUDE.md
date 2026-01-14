@@ -72,12 +72,14 @@ SnapTrade API → sync service → SQLite → services → routes → HTMX parti
 - [x] SnapTrade client wrapper
 - [x] Full sync service (accounts, positions, transactions)
 - [x] Manual sync button with status display
+- [x] Transaction list with filters, search, sort, pagination
+- [x] Transaction detail page with related trades
 
 ### In Progress
-- [ ] Transaction history UI
+- [ ] Tags & comments system
 
 ### Backlog
 - [ ] Dashboard with portfolio summary
 - [ ] Position detail views
-- [ ] Transaction history views
+- [ ] Trade groups (multi-leg)
 - [ ] Daily sync cron job (APScheduler)

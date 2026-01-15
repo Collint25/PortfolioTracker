@@ -24,6 +24,9 @@ def list_transactions(
     start_date: str | None = Query(None),
     end_date: str | None = Query(None),
     search: str | None = Query(None),
+    is_option: str | None = Query(None),
+    option_type: str | None = Query(None),
+    option_action: str | None = Query(None),
     sort_by: str = "trade_date",
     sort_dir: str = "desc",
     page: int = Query(1, ge=1),
@@ -37,6 +40,14 @@ def list_transactions(
     symbol_val = symbol if symbol else None
     type_val = type if type else None
     search_val = search if search else None
+    option_type_val = option_type if option_type else None
+    option_action_val = option_action if option_action else None
+    # Parse is_option: "true"/"false" -> True/False, empty -> None
+    is_option_val = None
+    if is_option == "true":
+        is_option_val = True
+    elif is_option == "false":
+        is_option_val = False
 
     # Parse dates
     from datetime import datetime
@@ -52,6 +63,9 @@ def list_transactions(
         start_date=start_date_val,
         end_date=end_date_val,
         search=search_val,
+        is_option=is_option_val,
+        option_type=option_type_val,
+        option_action=option_action_val,
         sort_by=sort_by,
         sort_dir=sort_dir,
         page=page,
@@ -66,6 +80,8 @@ def list_transactions(
     symbols = transaction_service.get_unique_symbols(db)
     types = transaction_service.get_unique_types(db)
     tags = tag_service.get_all_tags(db)
+    option_types = transaction_service.get_unique_option_types(db)
+    option_actions = transaction_service.get_unique_option_actions(db)
 
     context = {
         "transactions": transactions,
@@ -77,6 +93,8 @@ def list_transactions(
         "symbols": symbols,
         "types": types,
         "tags": tags,
+        "option_types": option_types,
+        "option_actions": option_actions,
         # Current filter values
         "current_account_id": account_id_int,
         "current_symbol": symbol_val,
@@ -85,6 +103,9 @@ def list_transactions(
         "current_start_date": start_date_val,
         "current_end_date": end_date_val,
         "current_search": search_val,
+        "current_is_option": is_option,
+        "current_option_type": option_type_val,
+        "current_option_action": option_action_val,
         "current_sort_by": sort_by,
         "current_sort_dir": sort_dir,
         "title": "Transactions",

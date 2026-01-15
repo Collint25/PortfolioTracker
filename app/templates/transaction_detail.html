@@ -14,16 +14,62 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h2 class="card-title text-2xl font-mono">
-                        {{ transaction.symbol or 'N/A' }}
+                        {% if transaction.is_option %}
+                            {{ transaction.underlying_symbol or transaction.symbol or 'N/A' }}
+                            <span class="badge badge-lg {{ 'badge-success' if transaction.option_type == 'CALL' else 'badge-error' if transaction.option_type == 'PUT' else '' }}">
+                                {{ transaction.option_type or 'OPTION' }}
+                            </span>
+                        {% else %}
+                            {{ transaction.symbol or 'N/A' }}
+                        {% endif %}
                     </h2>
                     <p class="text-base-content/70">{{ transaction.description or 'No description' }}</p>
                 </div>
+                {% if transaction.is_option and transaction.option_action %}
+                <span class="badge badge-lg {{ 'badge-success' if 'BUY' in transaction.option_action else 'badge-error' if 'SELL' in transaction.option_action else 'badge-info' }}">
+                    {{ transaction.option_action.replace('_', ' ') }}
+                </span>
+                {% else %}
                 <span class="badge badge-lg {{ 'badge-success' if transaction.type == 'BUY' else 'badge-error' if transaction.type == 'SELL' else 'badge-info' }}">
                     {{ transaction.type }}
                 </span>
+                {% endif %}
             </div>
 
             <div class="divider"></div>
+
+            {% if transaction.is_option %}
+            <!-- Option Details -->
+            <div class="bg-base-200 rounded-lg p-4 mb-4">
+                <h4 class="font-semibold mb-3">Option Details</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-base-content/60">Strike Price</p>
+                        <p class="font-semibold">${{ '{:,.2f}'.format(transaction.strike_price) if transaction.strike_price else 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-base-content/60">Expiration</p>
+                        <p class="font-semibold">{{ transaction.expiration_date.strftime('%B %d, %Y') if transaction.expiration_date else 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-base-content/60">Option Type</p>
+                        <p class="font-semibold {{ 'text-success' if transaction.option_type == 'CALL' else 'text-error' if transaction.option_type == 'PUT' else '' }}">
+                            {{ transaction.option_type or 'N/A' }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-base-content/60">Action</p>
+                        <p class="font-semibold">{{ transaction.option_action.replace('_', ' ') if transaction.option_action else 'N/A' }}</p>
+                    </div>
+                    {% if transaction.option_ticker %}
+                    <div class="col-span-2">
+                        <p class="text-sm text-base-content/60">Option Ticker (OCC)</p>
+                        <p class="font-mono text-sm">{{ transaction.option_ticker }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
 
             <div class="grid grid-cols-2 gap-4">
                 <div>

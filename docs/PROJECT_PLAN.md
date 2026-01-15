@@ -12,6 +12,7 @@
 | 5 | Trade Groups (Multi-leg) | ✅ Complete |
 | 6 | Logging & SnapTrade API Update | ✅ Complete |
 | 7 | Positions View | ✅ Complete |
+| 7.5 | Option Support | ✅ Complete |
 | 8 | Manual Transactions | ⬜ Not Started |
 | 9 | Metrics & Dashboard | ⬜ Not Started |
 
@@ -277,6 +278,73 @@ Files modified:
 - [x] Click "View Positions" on an account
 - [x] Verify positions load without 404
 - [x] Verify market value and gain/loss display correctly
+
+---
+
+## Phase 7.5: Option Support ✅
+
+**Goal:** Extract option fields from transactions and sync option positions
+
+**Deliverables:**
+- [x] Add option columns to Transaction model (option_type, strike_price, expiration_date, option_ticker, is_option)
+- [x] Add option_action column to Transaction model (BUY_TO_OPEN, SELL_TO_CLOSE, etc.)
+- [x] Add option columns to Position model (same fields + underlying_symbol)
+- [x] Extract option data during transaction sync
+- [x] Sync option holdings via `list_option_holdings` endpoint
+- [x] Display option details in UI (strike, expiration, CALL/PUT, action)
+- [x] Add option filters to transaction list (option type, action, is_option)
+
+**Tests:**
+- [x] Option field extraction from raw JSON
+- [x] Option position sync
+- [x] UI displays option details correctly
+
+**Acceptance:**
+- [x] Transactions show option details (e.g., "AAPL $250 01/17 C" instead of just "AAPL")
+- [x] Transactions show action type (BUY TO OPEN, SELL TO CLOSE, etc.)
+- [x] Option positions appear on positions page
+- [x] Can filter transactions by option type (CALL/PUT), action (BUY_TO_OPEN, etc.), is_option
+
+**Note on bid/ask spread:** Not available in transaction history (executed trades). Would require real-time quote API calls. Deferred to future enhancement if needed.
+
+**Implementation Notes:**
+
+Option data available from SnapTrade:
+- `option_symbol` object contains: ticker, strike_price, expiration_date, option_type (CALL/PUT), underlying_symbol
+- `option_type` at root level contains action: BUY_TO_OPEN, BUY_TO_CLOSE, SELL_TO_OPEN, SELL_TO_CLOSE
+- 892 option transactions identified in database
+
+Files created:
+- `alembic/versions/a7f3c2d5e8b1_add_option_support.py` - Migration for both models
+- `scripts/backfill_options.py` - Backfill script for existing transactions
+- `tests/test_options.py` - 7 option-specific tests
+
+Files modified:
+- `app/models/transaction.py` - Added: is_option, option_type, strike_price, expiration_date, option_ticker, underlying_symbol, option_action
+- `app/models/position.py` - Added: is_option, option_type, strike_price, expiration_date, option_ticker, underlying_symbol
+- `app/services/sync_service.py` - Added _extract_option_data(), _sync_option_position(), updated sync_transactions/sync_positions
+- `app/services/snaptrade_client.py` - Added fetch_option_holdings()
+- `app/services/market_data_service.py` - Skip option positions using is_option flag
+- `app/services/transaction_service.py` - Added is_option, option_type, option_action filters + helper functions
+- `app/routers/transactions.py` - Added is_option, option_type, option_action query params
+- `app/templates/transactions.html` - Added 3 new option filter dropdowns
+- `app/templates/partials/transaction_table.html` - Show option details in symbol column, option action in type column
+- `app/templates/partials/position_list.html` - Show option details in symbol column
+- `app/templates/transaction_detail.html` - Added Option Details section
+
+**SnapTrade API Notes:**
+- Transaction option data: `option_symbol` field in activity response
+- Transaction action type: `option_type` field at root level (BUY_TO_OPEN, etc.)
+- Option positions: `options.list_option_holdings(account_id, user_id, user_secret)`
+- Option holdings structure: `symbol.option_symbol` contains option details (not at root level)
+
+**Manual Testing Checklist:**
+- [x] Run migration (`uv run alembic upgrade head`)
+- [x] Run backfill for existing transactions (`uv run python scripts/backfill_options.py`)
+- [ ] Check transactions page shows option details
+- [ ] Check positions page shows option holdings
+- [ ] Verify "Refresh Prices" skips options gracefully
+- [ ] Filter transactions by CALL/PUT
 
 ---
 

@@ -16,7 +16,18 @@
         <tbody>
             {% for item in positions %}
             <tr>
-                <td class="font-medium">{{ item.position.symbol }}</td>
+                <td class="font-medium">
+                    {{ item.position.underlying_symbol if item.position.is_option else item.position.symbol }}
+                    {% if item.position.is_option %}
+                    <span class="text-xs text-base-content/60 font-normal ml-1">
+                        ${{ '{:.0f}'.format(item.position.strike_price) if item.position.strike_price else '?' }}
+                        {{ item.position.expiration_date.strftime('%m/%d') if item.position.expiration_date else '' }}
+                        <span class="{{ 'text-success' if item.position.option_type == 'CALL' else 'text-error' if item.position.option_type == 'PUT' else '' }}">
+                            {{ 'C' if item.position.option_type == 'CALL' else 'P' if item.position.option_type == 'PUT' else '' }}
+                        </span>
+                    </span>
+                    {% endif %}
+                </td>
                 <td class="text-right">{{ "{:,.4f}".format(item.position.quantity) }}</td>
                 <td class="text-right">
                     {% if item.position.average_cost is not none %}

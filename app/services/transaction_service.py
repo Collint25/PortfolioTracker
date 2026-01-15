@@ -17,6 +17,9 @@ def get_transactions(
     end_date: date | None = None,
     search: str | None = None,
     tag_id: int | None = None,
+    is_option: bool | None = None,
+    option_type: str | None = None,
+    option_action: str | None = None,
     sort_by: str = "trade_date",
     sort_dir: str = "desc",
     page: int = 1,
@@ -33,7 +36,13 @@ def get_transactions(
     if account_id:
         query = query.filter(Transaction.account_id == account_id)
     if symbol:
-        query = query.filter(Transaction.symbol == symbol)
+        # Search in both symbol and underlying_symbol for options
+        query = query.filter(
+            or_(
+                Transaction.symbol == symbol,
+                Transaction.underlying_symbol == symbol,
+            )
+        )
     if transaction_type:
         query = query.filter(Transaction.type == transaction_type)
     if start_date:
@@ -45,11 +54,19 @@ def get_transactions(
         query = query.filter(
             or_(
                 Transaction.symbol.ilike(search_pattern),
+                Transaction.underlying_symbol.ilike(search_pattern),
                 Transaction.description.ilike(search_pattern),
             )
         )
     if tag_id:
         query = query.join(transaction_tags).filter(transaction_tags.c.tag_id == tag_id)
+    # Option filters
+    if is_option is not None:
+        query = query.filter(Transaction.is_option == is_option)
+    if option_type:
+        query = query.filter(Transaction.option_type == option_type)
+    if option_action:
+        query = query.filter(Transaction.option_action == option_action)
 
     # Get total count before pagination
     total = query.count()
@@ -91,6 +108,30 @@ def get_unique_types(db: Session) -> list[str]:
         db.query(Transaction.type)
         .distinct()
         .order_by(Transaction.type)
+        .all()
+    )
+    return [r[0] for r in results if r[0]]
+
+
+def get_unique_option_types(db: Session) -> list[str]:
+    """Get all unique option types (CALL, PUT)."""
+    results = (
+        db.query(Transaction.option_type)
+        .filter(Transaction.option_type.isnot(None))
+        .distinct()
+        .order_by(Transaction.option_type)
+        .all()
+    )
+    return [r[0] for r in results if r[0]]
+
+
+def get_unique_option_actions(db: Session) -> list[str]:
+    """Get all unique option actions (BUY_TO_OPEN, SELL_TO_CLOSE, etc.)."""
+    results = (
+        db.query(Transaction.option_action)
+        .filter(Transaction.option_action.isnot(None))
+        .distinct()
+        .order_by(Transaction.option_action)
         .all()
     )
     return [r[0] for r in results if r[0]]

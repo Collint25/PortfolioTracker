@@ -1,6 +1,7 @@
+from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import JSON, ForeignKey, Numeric, String
+from sqlalchemy import JSON, Boolean, Date, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -20,6 +21,14 @@ class Position(Base, TimestampMixin):
     average_cost: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
     current_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
     currency: Mapped[str] = mapped_column(String(3), default="USD")
+
+    # Option fields
+    is_option: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    option_type: Mapped[str | None] = mapped_column(String(10))  # CALL, PUT
+    strike_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    expiration_date: Mapped[date | None] = mapped_column(Date, index=True)
+    option_ticker: Mapped[str | None] = mapped_column(String(50))  # OCC symbol
+    underlying_symbol: Mapped[str | None] = mapped_column(String(20), index=True)
 
     # Store raw API response for debugging
     _raw_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)

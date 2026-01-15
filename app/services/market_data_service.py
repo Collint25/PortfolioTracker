@@ -87,8 +87,8 @@ def refresh_position_prices(db: Session, account_id: int) -> dict[str, any]:
             skipped += 1
             continue
 
-        # Skip options (contain spaces or special chars)
-        if " " in symbol or len(symbol) > 10:
+        # Skip option positions (they have their own pricing)
+        if position.is_option:
             skipped += 1
             continue
 

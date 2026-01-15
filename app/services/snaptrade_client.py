@@ -84,3 +84,15 @@ def fetch_account_activities(
         offset += limit
 
     return all_activities
+
+
+def fetch_option_holdings(
+    client: SnapTrade, user_id: str, user_secret: str, account_id: str
+) -> list[dict]:
+    """Fetch option holdings/positions for a specific account."""
+    response = client.options.list_option_holdings(
+        account_id=account_id,
+        user_id=user_id,
+        user_secret=user_secret,
+    )
+    return response.body if response.body else []

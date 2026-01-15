@@ -80,6 +80,42 @@
                 </select>
             </div>
 
+            <!-- Options filter -->
+            <div class="form-control">
+                <label class="label"><span class="label-text">Options</span></label>
+                <select name="is_option" class="select select-bordered select-sm">
+                    <option value="">All</option>
+                    <option value="true" {{ 'selected' if current_is_option == 'true' else '' }}>Options Only</option>
+                    <option value="false" {{ 'selected' if current_is_option == 'false' else '' }}>Stocks Only</option>
+                </select>
+            </div>
+
+            <!-- Option Type filter (CALL/PUT) -->
+            <div class="form-control">
+                <label class="label"><span class="label-text">Call/Put</span></label>
+                <select name="option_type" class="select select-bordered select-sm">
+                    <option value="">All</option>
+                    {% for ot in option_types %}
+                    <option value="{{ ot }}" {{ 'selected' if current_option_type == ot else '' }}>
+                        {{ ot }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Option Action filter -->
+            <div class="form-control">
+                <label class="label"><span class="label-text">Action</span></label>
+                <select name="option_action" class="select select-bordered select-sm">
+                    <option value="">All</option>
+                    {% for oa in option_actions %}
+                    <option value="{{ oa }}" {{ 'selected' if current_option_action == oa else '' }}>
+                        {{ oa.replace('_', ' ') }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <!-- Date range -->
             <div class="form-control">
                 <label class="label"><span class="label-text">From</span></label>

@@ -49,6 +49,22 @@ def calculate_gain_loss_percent(position: Position) -> Decimal | None:
     return (gain_loss / cost_basis) * 100
 
 
+def calculate_daily_change(position: Position) -> Decimal | None:
+    """Calculate daily change in $ (current_price - previous_close) * quantity."""
+    if position.current_price is None or position.previous_close is None:
+        return None
+    return (position.current_price - position.previous_close) * position.quantity
+
+
+def calculate_daily_change_percent(position: Position) -> Decimal | None:
+    """Calculate daily change as percentage."""
+    if position.current_price is None or position.previous_close is None:
+        return None
+    if position.previous_close == 0:
+        return None
+    return ((position.current_price - position.previous_close) / position.previous_close) * 100
+
+
 def get_position_summary(position: Position) -> dict:
     """Get position with calculated fields."""
     return {
@@ -57,6 +73,8 @@ def get_position_summary(position: Position) -> dict:
         "cost_basis": calculate_cost_basis(position),
         "gain_loss": calculate_gain_loss(position),
         "gain_loss_percent": calculate_gain_loss_percent(position),
+        "daily_change": calculate_daily_change(position),
+        "daily_change_percent": calculate_daily_change_percent(position),
     }
 
 
@@ -75,12 +93,21 @@ def get_account_positions_summary(
     # Calculate totals
     total_market_value = Decimal("0")
     total_cost_basis = Decimal("0")
+    total_daily_change = Decimal("0")
+    total_previous_value = Decimal("0")
+    has_daily_data = False
 
     for s in summaries:
         if s["market_value"] is not None:
             total_market_value += s["market_value"]
         if s["cost_basis"] is not None:
             total_cost_basis += s["cost_basis"]
+        if s["daily_change"] is not None:
+            total_daily_change += s["daily_change"]
+            has_daily_data = True
+        # Track previous value for accurate percent calculation
+        if s["position"].previous_close is not None and s["position"].quantity:
+            total_previous_value += s["position"].previous_close * s["position"].quantity
 
     total_gain_loss = total_market_value - total_cost_basis
     total_gain_loss_percent = (
@@ -89,11 +116,20 @@ def get_account_positions_summary(
         else None
     )
 
+    # Daily change percent based on previous value
+    total_daily_change_percent = (
+        (total_daily_change / total_previous_value) * 100
+        if has_daily_data and total_previous_value != 0
+        else None
+    )
+
     totals = {
         "market_value": total_market_value,
         "cost_basis": total_cost_basis,
         "gain_loss": total_gain_loss,
         "gain_loss_percent": total_gain_loss_percent,
+        "daily_change": total_daily_change if has_daily_data else None,
+        "daily_change_percent": total_daily_change_percent,
     }
 
     return summaries, totals

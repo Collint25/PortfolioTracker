@@ -18,7 +18,7 @@
 | 8 | Linked Trades - Data Model | ✅ |
 | 8.1 | Linked Trades - FIFO Matching | ✅ |
 | 8.2 | Linked Trades - API & UI | ✅ |
-| 9 | Account Cards with Market Value | ⬜ |
+| 9 | Account Cards with Market Value | ✅ |
 | 9.1 | Dashboard Enhancement | ⬜ |
 | 9.2 | Filter Consolidation | ⬜ |
 | 9.3 | Saved Filters | ⬜ |
@@ -49,12 +49,12 @@ Option fields (strike, expiration, CALL/PUT, action type), option position sync,
 FIFO matching for option open/close pairs. Links transactions to track P/L per position lifecycle.
 - 472 linked trades, $5,948.86 total P/L, 51.2% win rate
 
+### Phase 9: Account Cards with Market Value
+Added `previous_close` column to positions, capture from Finnhub `pc` field. Account cards now display market value with daily $ and % change.
+
 ---
 
 ## In Progress
-
-### Phase 9: Account Cards with Market Value
-Add `previous_close` to positions, display daily $ and % change on account cards.
 
 ### Phase 9.1: Dashboard Enhancement
 Replace hero section with account cards grid, expandable positions on click.

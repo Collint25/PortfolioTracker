@@ -20,6 +20,7 @@ class Position(Base, TimestampMixin):
     quantity: Mapped[Decimal] = mapped_column(Numeric(18, 8))
     average_cost: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
     current_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    previous_close: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
     currency: Mapped[str] = mapped_column(String(3), default="USD")
 
     # Option fields

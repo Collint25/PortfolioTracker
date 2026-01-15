@@ -1,20 +1,7 @@
 {% if accounts %}
 <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-    {% for account in accounts %}
-    <div class="card bg-base-100 shadow-xl">
-        <div class="card-body">
-            <h2 class="card-title">{{ account.name }}</h2>
-            <p class="text-sm text-base-content/70">{{ account.account_number }}</p>
-            {% if account.account_type %}
-            <div class="badge badge-outline">{{ account.account_type }}</div>
-            {% endif %}
-            <div class="card-actions justify-end mt-4">
-                <a href="/accounts/{{ account.id }}/positions" class="btn btn-sm btn-primary">
-                    View Positions
-                </a>
-            </div>
-        </div>
-    </div>
+    {% for item in accounts %}
+    {% include "partials/account_card.html" %}
     {% endfor %}
 </div>
 {% else %}

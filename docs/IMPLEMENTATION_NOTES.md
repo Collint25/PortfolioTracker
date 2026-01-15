@@ -171,17 +171,22 @@ For each unique contract:
 
 ## Phase 9: Account Cards with Market Value
 
-**Files to create:**
-- `alembic/versions/xxxx_add_previous_close.py`
-- `app/templates/partials/account_card.html`
+**Files created:**
+- `alembic/versions/c9d5e7f1a3b4_add_previous_close.py` - Migration for previous_close column
+- `app/templates/partials/account_card.html` - Account card with market value and daily change
 
-**Files to modify:**
-- `app/models/position.py` - Add `previous_close` column
-- `app/services/market_data_service.py` - Capture `pc` from Finnhub
-- `app/services/position_service.py` - Add daily change calculations
-- `app/services/account_service.py` - Add `get_all_accounts_with_totals()`
-- `app/routers/accounts.py` - Fetch totals for list
-- `app/templates/partials/account_list.html` - Use account_card partial
+**Files modified:**
+- `app/models/position.py` - Added `previous_close` column
+- `app/services/market_data_service.py` - Updated `get_quote()` to return (current_price, previous_close) tuple, updated `refresh_position_prices()` to store both values
+- `app/services/position_service.py` - Added `calculate_daily_change()`, `calculate_daily_change_percent()`, updated summaries to include daily change totals
+- `app/services/account_service.py` - Added `get_all_accounts_with_totals()` function
+- `app/routers/accounts.py` - Updated `list_accounts()` to use accounts_with_totals
+- `app/templates/partials/account_list.html` - Updated to iterate over `item` dicts and include account_card partial
+
+**Key changes:**
+- Finnhub `pc` field now captured as `previous_close` on Position model
+- Account cards display: market value, daily $ change, daily % change
+- Position summaries include daily change calculations at individual and aggregate level
 
 ---
 

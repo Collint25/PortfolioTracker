@@ -14,21 +14,21 @@ templates = Jinja2Templates(directory="app/templates")
 def list_accounts(
     request: Request, db: Session = Depends(get_db)
 ) -> HTMLResponse:
-    """List all accounts."""
-    accounts = account_service.get_all_accounts(db)
+    """List all accounts with totals."""
+    accounts_with_totals = account_service.get_all_accounts_with_totals(db)
 
     # Return partial for HTMX requests
     if request.headers.get("HX-Request") == "true":
         return templates.TemplateResponse(
             request=request,
             name="partials/account_list.html",
-            context={"accounts": accounts},
+            context={"accounts": accounts_with_totals},
         )
 
     return templates.TemplateResponse(
         request=request,
         name="accounts.html",
-        context={"accounts": accounts, "title": "Accounts"},
+        context={"accounts": accounts_with_totals, "title": "Accounts"},
     )
 
 

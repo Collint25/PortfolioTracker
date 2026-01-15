@@ -12,17 +12,21 @@ from app.models import Position
 
 logger = logging.getLogger(__name__)
 
+# Quote data structure: (current_price, previous_close)
+QuoteData = tuple[Decimal, Decimal | None]
+
 # Simple in-memory cache for quotes
-_quote_cache: dict[str, tuple[Decimal, datetime]] = {}
+_quote_cache: dict[str, tuple[QuoteData, datetime]] = {}
 CACHE_TTL_MINUTES = 5
 
 FINNHUB_BASE_URL = "https://finnhub.io/api/v1"
 
 
-def get_quote(symbol: str) -> Decimal | None:
+def get_quote(symbol: str) -> QuoteData | None:
     """
-    Fetch current price for a symbol from Finnhub.
+    Fetch current price and previous close for a symbol from Finnhub.
 
+    Returns (current_price, previous_close) tuple.
     Returns cached value if available and fresh.
     """
     settings = get_settings()
@@ -32,9 +36,9 @@ def get_quote(symbol: str) -> Decimal | None:
 
     # Check cache
     if symbol in _quote_cache:
-        price, cached_at = _quote_cache[symbol]
+        quote_data, cached_at = _quote_cache[symbol]
         if datetime.now() - cached_at < timedelta(minutes=CACHE_TTL_MINUTES):
-            return price
+            return quote_data
 
     try:
         response = httpx.get(
@@ -49,8 +53,12 @@ def get_quote(symbol: str) -> Decimal | None:
         current_price = data.get("c")
         if current_price and current_price > 0:
             price = Decimal(str(current_price))
-            _quote_cache[symbol] = (price, datetime.now())
-            return price
+            prev_close = None
+            if data.get("pc") and data["pc"] > 0:
+                prev_close = Decimal(str(data["pc"]))
+            quote_data = (price, prev_close)
+            _quote_cache[symbol] = (quote_data, datetime.now())
+            return quote_data
 
         logger.warning("No price data for %s: %s", symbol, data)
         return None
@@ -65,7 +73,7 @@ def get_quote(symbol: str) -> Decimal | None:
 
 def refresh_position_prices(db: Session, account_id: int) -> dict[str, any]:
     """
-    Refresh current prices for all positions in an account.
+    Refresh current prices and previous close for all positions in an account.
 
     Returns summary of updated positions.
     """
@@ -92,11 +100,13 @@ def refresh_position_prices(db: Session, account_id: int) -> dict[str, any]:
             skipped += 1
             continue
 
-        price = get_quote(symbol)
-        if price is not None:
-            position.current_price = price
+        quote_data = get_quote(symbol)
+        if quote_data is not None:
+            current_price, prev_close = quote_data
+            position.current_price = current_price
+            position.previous_close = prev_close
             updated += 1
-            logger.info("Updated %s: $%s", symbol, price)
+            logger.info("Updated %s: $%s (prev: $%s)", symbol, current_price, prev_close)
         else:
             failed += 1
 

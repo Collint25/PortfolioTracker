@@ -1,0 +1,42 @@
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+        <h2 class="card-title">{{ item.account.name }}</h2>
+        <p class="text-sm text-base-content/70">{{ item.account.account_number }}</p>
+        {% if item.account.account_type %}
+        <div class="badge badge-outline">{{ item.account.account_type }}</div>
+        {% endif %}
+
+        <!-- Market Value -->
+        <div class="mt-4">
+            <div class="text-sm text-base-content/70">Market Value</div>
+            <div class="text-2xl font-bold">
+                ${{ "{:,.2f}".format(item.totals.market_value) }}
+            </div>
+        </div>
+
+        <!-- Daily Change -->
+        {% if item.totals.daily_change is not none %}
+        <div class="flex items-center gap-2 mt-1">
+            <span class="{{ 'text-success' if item.totals.daily_change >= 0 else 'text-error' }} font-medium">
+                {{ "+" if item.totals.daily_change >= 0 else "" }}${{ "{:,.2f}".format(item.totals.daily_change) }}
+            </span>
+            {% if item.totals.daily_change_percent is not none %}
+            <span class="{{ 'text-success' if item.totals.daily_change_percent >= 0 else 'text-error' }} text-sm">
+                ({{ "+" if item.totals.daily_change_percent >= 0 else "" }}{{ "{:.2f}".format(item.totals.daily_change_percent) }}%)
+            </span>
+            {% endif %}
+            <span class="text-xs text-base-content/50">today</span>
+        </div>
+        {% else %}
+        <div class="text-sm text-base-content/50 mt-1">
+            No price data
+        </div>
+        {% endif %}
+
+        <div class="card-actions justify-end mt-4">
+            <a href="/accounts/{{ item.account.id }}/positions" class="btn btn-sm btn-primary">
+                View Positions
+            </a>
+        </div>
+    </div>
+</div>

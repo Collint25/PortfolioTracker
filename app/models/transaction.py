@@ -9,6 +9,7 @@ from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.comment import Comment
+    from app.models.linked_trade_leg import LinkedTradeLeg
     from app.models.tag import Tag
     from app.models.trade_group import TradeGroup
 
@@ -60,4 +61,7 @@ class Transaction(Base, TimestampMixin):
     )
     trade_groups: Mapped[list["TradeGroup"]] = relationship(
         secondary="trade_group_transactions", back_populates="transactions"
+    )
+    linked_trade_legs: Mapped[list["LinkedTradeLeg"]] = relationship(
+        back_populates="transaction"
     )

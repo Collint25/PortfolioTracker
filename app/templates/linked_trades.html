@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Linked Trades</h1>
+    <div class="flex gap-2 items-center">
+        <span class="badge badge-lg">{{ total }} trades</span>
+        <button
+            hx-post="/linked-trades/auto-match"
+            hx-target="#linked-trade-list"
+            hx-swap="innerHTML"
+            class="btn btn-primary btn-sm"
+        >
+            Run Auto-Match
+        </button>
+    </div>
+</div>
+
+<!-- P/L Summary Cards -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Total P/L</div>
+        <div class="stat-value text-lg {% if summary.total_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+            ${{ "%.2f"|format(summary.total_pl) }}
+        </div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Win Rate</div>
+        <div class="stat-value text-lg">{{ "%.1f"|format(summary.win_rate) }}%</div>
+        <div class="stat-desc">{{ summary.winners }}W / {{ summary.losers }}L</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Closed</div>
+        <div class="stat-value text-lg">{{ summary.closed_count }}</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Open</div>
+        <div class="stat-value text-lg">{{ summary.open_count }}</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card bg-base-100 shadow mb-6">
+    <div class="card-body py-4">
+        <form
+            hx-get="/linked-trades/"
+            hx-target="#linked-trade-list"
+            hx-swap="innerHTML"
+            hx-push-url="true"
+            class="flex flex-wrap gap-4 items-end"
+        >
+            <div class="form-control">
+                <label class="label py-1"><span class="label-text">Account</span></label>
+                <select name="account_id" class="select select-bordered select-sm">
+                    <option value="">All Accounts</option>
+                    {% for account in accounts %}
+                    <option value="{{ account.id }}" {% if filters.account_id == account.id %}selected{% endif %}>
+                        {{ account.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label py-1"><span class="label-text">Symbol</span></label>
+                <select name="underlying_symbol" class="select select-bordered select-sm">
+                    <option value="">All Symbols</option>
+                    {% for symbol in symbols %}
+                    <option value="{{ symbol }}" {% if filters.underlying_symbol == symbol %}selected{% endif %}>
+                        {{ symbol }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label py-1"><span class="label-text">Status</span></label>
+                <select name="is_closed" class="select select-bordered select-sm">
+                    <option value="">All</option>
+                    <option value="true" {% if filters.is_closed == 'true' %}selected{% endif %}>Closed</option>
+                    <option value="false" {% if filters.is_closed == 'false' %}selected{% endif %}>Open</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-sm btn-outline">Filter</button>
+            <a href="/linked-trades/" class="btn btn-sm btn-ghost">Clear</a>
+        </form>
+    </div>
+</div>
+
+<!-- Linked trade list -->
+<div id="linked-trade-list">
+    {% include "partials/linked_trade_list.html" %}
+</div>
+{% endblock %}

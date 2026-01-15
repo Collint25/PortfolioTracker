@@ -1,7 +1,14 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.linked_trade import LinkedTrade
+    from app.models.position import Position
+    from app.models.transaction import Transaction
 
 
 class Account(Base, TimestampMixin):
@@ -22,3 +29,4 @@ class Account(Base, TimestampMixin):
     # Relationships
     positions: Mapped[list["Position"]] = relationship(back_populates="account")
     transactions: Mapped[list["Transaction"]] = relationship(back_populates="account")
+    linked_trades: Mapped[list["LinkedTrade"]] = relationship(back_populates="account")

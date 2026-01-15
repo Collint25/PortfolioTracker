@@ -13,8 +13,11 @@
 | 6 | Logging & SnapTrade API Update | ✅ Complete |
 | 7 | Positions View | ✅ Complete |
 | 7.5 | Option Support | ✅ Complete |
-| 8 | Manual Transactions | ⬜ Not Started |
-| 9 | Metrics & Dashboard | ⬜ Not Started |
+| 8 | Linked Trades - Data Model | ✅ Complete |
+| 8.1 | Linked Trades - FIFO Matching | ✅ Complete |
+| 8.2 | Linked Trades - API & UI | ✅ Complete |
+| 9 | Manual Transactions | ⬜ Not Started |
+| 10 | Metrics & Dashboard | ⬜ Not Started |
 
 ---
 
@@ -348,7 +351,213 @@ Files modified:
 
 ---
 
-## Phase 8: Manual Transactions ⬜
+## Phase 8: Linked Trades - Data Model ✅
+
+**Goal:** Create database models for linking opening and closing option trades
+
+**Background:**
+- No linking ID exists from Fidelity/SnapTrade between open/close trades
+- `external_reference_id` only groups same-day multi-leg trades (spreads)
+- Must match by contract identity: (account_id, underlying_symbol, option_type, strike_price, expiration_date)
+- 892 option transactions to process
+
+**Deliverables:**
+- [x] LinkedTrade model (tracks a single option position lifecycle)
+- [x] LinkedTradeLeg model (M2M with quantity allocation for partial closes)
+- [x] Update Transaction model with relationship
+- [x] Update Account model with relationship
+- [x] Alembic migration
+
+**LinkedTrade Model Fields:**
+```
+id, account_id (FK)
+underlying_symbol, option_type, strike_price, expiration_date
+direction (LONG/SHORT)
+realized_pl, is_closed
+total_opened_quantity, total_closed_quantity
+is_auto_matched, notes
+```
+
+**LinkedTradeLeg Model Fields:**
+```
+id, linked_trade_id (FK), transaction_id (FK)
+allocated_quantity (enables partial closes)
+leg_type (OPEN/CLOSE)
+trade_date, price_per_contract (denormalized for display)
+```
+
+**Key Difference from TradeGroup:** LinkedTradeLeg stores `allocated_quantity` per leg, enabling one transaction to be split across multiple linked trades (partial closes).
+
+**Files to Create:**
+- `app/models/linked_trade.py`
+- `app/models/linked_trade_leg.py`
+- `alembic/versions/xxxx_add_linked_trades.py`
+
+**Files to Modify:**
+- `app/models/__init__.py` - Export new models
+- `app/models/transaction.py` - Add `linked_trade_legs` relationship
+- `app/models/account.py` - Add `linked_trades` relationship
+
+**Tests:**
+- [x] LinkedTrade model CRUD
+- [x] LinkedTradeLeg with quantity allocation
+- [x] Relationships work correctly
+
+**Acceptance:**
+- [x] Migration runs successfully
+- [x] Can create LinkedTrade with legs in test
+- [x] Partial allocation works (one transaction split across multiple links)
+
+**Implementation Notes:**
+
+Files created:
+- `app/models/linked_trade.py` - LinkedTrade model with contract fields, P/L, status
+- `app/models/linked_trade_leg.py` - LinkedTradeLeg model with quantity allocation
+- `alembic/versions/b8c4d6e9f0a2_add_linked_trades.py` - Migration
+
+Files modified:
+- `app/models/__init__.py` - Export new models
+- `app/models/transaction.py` - Added `linked_trade_legs` relationship
+- `app/models/account.py` - Added `linked_trades` relationship
+
+---
+
+## Phase 8.1: Linked Trades - FIFO Matching ✅
+
+**Goal:** Implement FIFO algorithm to auto-match opening/closing trades
+
+**FIFO Algorithm:**
+```
+Match by contract identity: (account_id, underlying_symbol, option_type, strike_price, expiration_date)
+
+For each unique contract:
+  1. Get all opening transactions ordered by (trade_date, id)
+  2. Get all closing transactions ordered by (trade_date, id)
+  3. Track remaining quantity per opening transaction
+  4. For each close:
+     - Allocate to oldest open with remaining qty (FIFO)
+     - Create/extend LinkedTrade with legs
+     - Mark closed when total_closed >= total_opened
+  5. Calculate realized P/L = sum(close amounts) + sum(open amounts)
+```
+
+**Direction Mapping:**
+- LONG: BUY_TO_OPEN → SELL_TO_CLOSE
+- SHORT: SELL_TO_OPEN → BUY_TO_CLOSE
+
+**Scenarios to Handle:**
+1. Simple: Open 5, close 5 (full match)
+2. Partial: Open 5, close 3, close 2 later
+3. Multiple opens: Open 3 day 1, open 2 day 2, close 5
+4. Short selling: SELL_TO_OPEN → BUY_TO_CLOSE
+5. Orphans: Opens without closes (position still open)
+6. Cross-account: Must NOT link across accounts
+
+**Deliverables:**
+- [x] ContractKey named tuple for contract identity
+- [x] `find_unique_contracts(db)` - Find all unique option contracts
+- [x] `auto_match_contract(db, contract_key)` - FIFO match single contract
+- [x] `auto_match_all(db)` - Match all unlinked transactions
+- [x] `calculate_linked_trade_pl(db, link_id)` - P/L calculation
+- [x] `get_unlinked_option_transactions(db)` - Find orphans
+
+**Files Created:**
+- `app/services/linked_trade_service.py` - Full FIFO matching service
+- `tests/test_linked_trades.py` - 7 unit tests
+
+**Tests:**
+- [x] FIFO simple match (open 5, close 5)
+- [x] FIFO partial close (open 5, close 3, close 2)
+- [x] FIFO multiple opens (open 3, open 2, close 5)
+- [x] SHORT direction (SELL_TO_OPEN → BUY_TO_CLOSE)
+- [x] Cross-account no match
+- [x] P/L calculation accuracy
+- [x] Orphan handling
+
+**Acceptance:**
+- [x] `auto_match_all()` creates correct LinkedTrades
+- [x] FIFO order respected
+- [x] P/L calculations correct
+- [x] No cross-account linking
+
+**Results from Real Data:**
+- 472 linked trades created from 298 unique contracts
+- Total P/L: $5,948.86
+- Win Rate: 51.2% (216 winners, 206 losers)
+- 422 closed positions, 50 open
+
+---
+
+## Phase 8.2: Linked Trades - API & UI ✅
+
+**Goal:** API endpoints, UI pages, and manual override capability
+
+**API Endpoints:**
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/linked-trades` | List with filters (account, symbol, status) |
+| GET | `/linked-trades/{id}` | Detail view with legs |
+| GET | `/linked-trades/open-positions` | Open positions only |
+| GET | `/linked-trades/unlinked` | Unlinked option transactions |
+| POST | `/linked-trades/auto-match` | Run FIFO matching |
+| POST | `/linked-trades` | Manual create |
+| POST | `/linked-trades/{id}/legs` | Add leg |
+| DELETE | `/linked-trades/{id}/legs/{leg_id}` | Remove leg |
+| DELETE | `/linked-trades/{id}` | Unlink trade |
+
+**Manual Override Functions:**
+- `create_linked_trade_manual(db, account_id, txn_ids, allocations)`
+- `add_transaction_to_linked_trade(db, link_id, txn_id, qty)`
+- `remove_leg_from_linked_trade(db, leg_id)`
+- `unlink_trade(db, link_id)` - Delete link, free transactions for re-matching
+
+**UI Pages:**
+- `/linked-trades` - List with P/L summary, "Run Auto-Match" button
+- `/linked-trades/{id}` - Detail with legs table, add/remove legs
+
+**Transaction Detail Update:**
+- Add "Linked Trades" card for option transactions
+- Show which linked trades include this transaction
+- Display allocated quantity and P/L contribution
+
+**Files to Create:**
+- `app/routers/linked_trades.py`
+- `app/templates/linked_trades.html`
+- `app/templates/linked_trade_detail.html`
+- `app/templates/partials/linked_trade_list.html`
+- `app/templates/partials/linked_trade_legs.html`
+- `app/templates/partials/transaction_linked_trades.html`
+
+**Files to Modify:**
+- `app/main.py` - Register router
+- `app/templates/base.html` - Add nav link
+- `app/templates/transaction_detail.html` - Add linked trades section
+
+**Tests:**
+- [ ] List endpoint with filters
+- [ ] Detail endpoint
+- [ ] Auto-match endpoint
+- [ ] Manual create/edit/delete
+
+**Acceptance:**
+- [ ] Can view all linked trades with P/L
+- [ ] Can run auto-match from UI
+- [ ] Can manually create/edit links
+- [ ] Transaction detail shows linked trades for options
+
+**Manual Testing Checklist:**
+- [ ] Navigate to Linked Trades page
+- [ ] Click "Run Auto-Match"
+- [ ] Verify linked trades created
+- [ ] Check P/L calculations
+- [ ] Click into linked trade detail
+- [ ] Remove a leg, add it back
+- [ ] Unlink a trade entirely
+- [ ] Go to transaction detail, verify linked trades section appears
+
+---
+
+## Phase 9: Manual Transactions ⬜
 
 **Goal:** Allow creating, editing, and deleting transactions manually (without SnapTrade)
 
@@ -393,7 +602,7 @@ Files modified:
 
 ---
 
-## Phase 9: Metrics & Dashboard ⬜
+## Phase 10: Metrics & Dashboard ⬜
 
 **Goal:** P/L tracking and performance overview
 

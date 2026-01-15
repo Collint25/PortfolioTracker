@@ -1,0 +1,96 @@
+{% if match_result %}
+<div class="alert alert-success mb-4">
+    <span>Auto-match complete: {{ match_result.created }} linked trades created from {{ match_result.contracts_processed }} contracts.</span>
+</div>
+{% endif %}
+
+{% if linked_trades %}
+<div class="overflow-x-auto">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Contract</th>
+                <th>Direction</th>
+                <th>Qty</th>
+                <th>Status</th>
+                <th class="text-right">P/L</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lt in linked_trades %}
+            <tr class="hover cursor-pointer" onclick="window.location='/linked-trades/{{ lt.id }}'">
+                <td>
+                    <div class="font-medium">{{ lt.underlying_symbol }}</div>
+                    <div class="text-xs text-base-content/60">
+                        ${{ "%.2f"|format(lt.strike_price) }}
+                        {{ lt.expiration_date.strftime('%m/%d/%y') }}
+                        <span class="{% if lt.option_type == 'CALL' %}text-success{% else %}text-error{% endif %}">
+                            {{ lt.option_type }}
+                        </span>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-sm {% if lt.direction == 'LONG' %}badge-info{% else %}badge-warning{% endif %}">
+                        {{ lt.direction }}
+                    </span>
+                </td>
+                <td>
+                    {{ lt.total_opened_quantity|int }}
+                    {% if not lt.is_closed and lt.total_closed_quantity > 0 %}
+                    <span class="text-xs text-base-content/60">({{ lt.total_closed_quantity|int }} closed)</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if lt.is_closed %}
+                    <span class="badge badge-sm badge-success">Closed</span>
+                    {% else %}
+                    <span class="badge badge-sm badge-outline">Open</span>
+                    {% endif %}
+                </td>
+                <td class="text-right font-mono {% if lt.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                    {% if lt.is_closed %}
+                    ${{ "%.2f"|format(lt.realized_pl) }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    <button
+                        hx-delete="/linked-trades/{{ lt.id }}"
+                        hx-target="closest tr"
+                        hx-swap="outerHTML"
+                        hx-confirm="Unlink this trade? Transactions will be available for re-matching."
+                        class="btn btn-ghost btn-xs"
+                        onclick="event.stopPropagation()"
+                    >
+                        Unlink
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="flex justify-center mt-4">
+    <div class="join">
+        {% if page > 1 %}
+        <a href="/linked-trades/?page={{ page - 1 }}" class="join-item btn btn-sm">«</a>
+        {% endif %}
+        <span class="join-item btn btn-sm btn-disabled">Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}
+        <a href="/linked-trades/?page={{ page + 1 }}" class="join-item btn btn-sm">»</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center py-8 text-base-content/60">
+    <p>No linked trades found.</p>
+    <p class="text-sm mt-2">Click "Run Auto-Match" to link opening and closing transactions.</p>
+</div>
+{% endif %}

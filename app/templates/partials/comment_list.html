@@ -6,7 +6,7 @@
                 <p class="text-sm whitespace-pre-wrap">{{ comment.text }}</p>
                 <button
                     class="btn btn-ghost btn-xs text-error"
-                    hx-delete="/api/comments/{{ comment.id }}"
+                    hx-delete="/comments/{{ comment.id }}"
                     hx-target="#comment-section"
                     hx-confirm="Delete this comment?"
                 >
@@ -26,7 +26,7 @@
 </div>
 
 <form
-    hx-post="/api/comments/transaction/{{ transaction_id }}"
+    hx-post="/comments/transaction/{{ transaction_id }}"
     hx-target="#comment-section"
     class="mt-4"
 >

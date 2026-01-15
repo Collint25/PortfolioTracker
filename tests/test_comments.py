@@ -140,13 +140,13 @@ def test_comment_endpoints(client, db_session):
 
     # Test creating a comment
     response = client.post(
-        f"/api/comments/transaction/{txn.id}",
+        f"/comments/transaction/{txn.id}",
         data={"text": "API test comment"},
     )
     assert response.status_code == 200
     assert "API test comment" in response.text
 
     # Test getting comments
-    response = client.get(f"/api/comments/transaction/{txn.id}")
+    response = client.get(f"/comments/transaction/{txn.id}")
     assert response.status_code == 200
     assert "API test comment" in response.text

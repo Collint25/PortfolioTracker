@@ -10,7 +10,7 @@
                 <a href="/accounts" class="btn btn-primary">View Accounts</a>
                 <button
                     class="btn btn-secondary"
-                    hx-post="/api/sync/"
+                    hx-post="/sync/"
                     hx-target="#sync-result"
                     hx-indicator="#sync-spinner"
                 >
@@ -24,7 +24,7 @@
 
 <div id="sync-result" class="max-w-md mx-auto mt-4"></div>
 
-<div class="stats shadow mx-auto mt-8" hx-get="/api/sync/status" hx-trigger="load, syncComplete from:body" hx-swap="innerHTML">
+<div class="stats shadow mx-auto mt-8" hx-get="/sync/status" hx-trigger="load, syncComplete from:body" hx-swap="innerHTML">
     <div class="stat">
         <div class="stat-title">Loading...</div>
     </div>

@@ -100,7 +100,7 @@ def test_tag_list_endpoint(client, db_session):
     """Test the tag list API endpoint."""
     tag_service.create_tag(db_session, "API Tag", "success")
 
-    response = client.get("/api/tags/")
+    response = client.get("/tags/")
     assert response.status_code == 200
     assert "API Tag" in response.text
 
@@ -108,7 +108,7 @@ def test_tag_list_endpoint(client, db_session):
 def test_create_tag_endpoint(client, db_session):
     """Test the create tag API endpoint."""
     response = client.post(
-        "/api/tags/",
+        "/tags/",
         data={"name": "New Tag", "color": "primary"},
     )
     assert response.status_code == 200
@@ -119,6 +119,6 @@ def test_delete_tag_endpoint(client, db_session):
     """Test the delete tag API endpoint."""
     tag = tag_service.create_tag(db_session, "To Delete", "error")
 
-    response = client.delete(f"/api/tags/{tag.id}")
+    response = client.delete(f"/tags/{tag.id}")
     assert response.status_code == 200
     assert "To Delete" not in response.text

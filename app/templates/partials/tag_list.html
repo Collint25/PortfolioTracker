@@ -10,7 +10,7 @@
         {{ tag.name }}
         <button
             class="btn btn-ghost btn-xs"
-            hx-delete="/api/tags/{{ tag.id }}"
+            hx-delete="/tags/{{ tag.id }}"
             hx-target="#tag-management"
             hx-confirm="Delete tag '{{ tag.name }}'?"
         >
@@ -25,7 +25,7 @@
 </div>
 
 <form
-    hx-post="/api/tags/"
+    hx-post="/tags/"
     hx-target="#tag-management"
     class="flex gap-2 items-end"
 >

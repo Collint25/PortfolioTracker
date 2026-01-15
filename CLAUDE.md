@@ -78,12 +78,12 @@ SnapTrade API → sync service → SQLite → services → routes → HTMX parti
 - [x] Trade groups (multi-leg strategies with auto-grouping, combined P/L)
 - [x] Logging configuration (stdout with formatted output)
 - [x] SnapTrade API update (per-account endpoint, no deprecation warnings)
+- [x] Positions view (market value, cost basis, gain/loss with percentages)
 
 ### In Progress
-- [ ] Positions View (fix 404)
+- [ ] Manual Transactions
 
 ### Backlog
-- [ ] Manual Transactions
 - [ ] Metrics & Dashboard
 - [ ] Position detail views
 - [ ] Daily sync cron job (APScheduler)

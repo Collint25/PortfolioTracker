@@ -1,0 +1,72 @@
+{% if positions %}
+<div class="overflow-x-auto">
+    <table class="table table-zebra">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th class="text-right">Quantity</th>
+                <th class="text-right">Avg Cost</th>
+                <th class="text-right">Current Price</th>
+                <th class="text-right">Cost Basis</th>
+                <th class="text-right">Market Value</th>
+                <th class="text-right">Gain/Loss</th>
+                <th class="text-right">Return %</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in positions %}
+            <tr>
+                <td class="font-medium">{{ item.position.symbol }}</td>
+                <td class="text-right">{{ "{:,.4f}".format(item.position.quantity) }}</td>
+                <td class="text-right">
+                    {% if item.position.average_cost is not none %}
+                    ${{ "{:,.2f}".format(item.position.average_cost) }}
+                    {% else %}
+                    --
+                    {% endif %}
+                </td>
+                <td class="text-right">
+                    {% if item.position.current_price is not none %}
+                    ${{ "{:,.2f}".format(item.position.current_price) }}
+                    {% else %}
+                    --
+                    {% endif %}
+                </td>
+                <td class="text-right">
+                    {% if item.cost_basis is not none %}
+                    ${{ "{:,.2f}".format(item.cost_basis) }}
+                    {% else %}
+                    --
+                    {% endif %}
+                </td>
+                <td class="text-right">
+                    {% if item.market_value is not none %}
+                    ${{ "{:,.2f}".format(item.market_value) }}
+                    {% else %}
+                    --
+                    {% endif %}
+                </td>
+                <td class="text-right {{ 'text-success' if item.gain_loss is not none and item.gain_loss >= 0 else 'text-error' if item.gain_loss is not none else '' }}">
+                    {% if item.gain_loss is not none %}
+                    {{ "+" if item.gain_loss >= 0 else "" }}${{ "{:,.2f}".format(item.gain_loss) }}
+                    {% else %}
+                    --
+                    {% endif %}
+                </td>
+                <td class="text-right {{ 'text-success' if item.gain_loss_percent is not none and item.gain_loss_percent >= 0 else 'text-error' if item.gain_loss_percent is not none else '' }}">
+                    {% if item.gain_loss_percent is not none %}
+                    {{ "+" if item.gain_loss_percent >= 0 else "" }}{{ "{:.2f}".format(item.gain_loss_percent) }}%
+                    {% else %}
+                    --
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <span>No positions found for this account.</span>
+</div>
+{% endif %}

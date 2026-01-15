@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     snaptrade_user_id: str = ""
     snaptrade_user_secret: str = ""
 
+    # Market data API key (Finnhub) for real-time quotes
+    market_data_api_key: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

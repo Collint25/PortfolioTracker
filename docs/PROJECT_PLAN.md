@@ -11,7 +11,7 @@
 | 4 | Tags & Comments | ✅ Complete |
 | 5 | Trade Groups (Multi-leg) | ✅ Complete |
 | 6 | Logging & SnapTrade API Update | ✅ Complete |
-| 7 | Positions View | ⬜ Not Started |
+| 7 | Positions View | ✅ Complete |
 | 8 | Manual Transactions | ⬜ Not Started |
 | 9 | Metrics & Dashboard | ⬜ Not Started |
 
@@ -240,17 +240,19 @@ Key changes:
 
 ---
 
-## Phase 7: Positions View ⬜
+## Phase 7: Positions View ✅
 
 **Goal:** Fix 404 error when viewing account positions
 
 **Deliverables:**
-- [ ] Account positions route and view
-- [ ] Position list with market value and gain/loss
+- [x] Account positions route and view
+- [x] Position list with market value and gain/loss
 
 **Tests:**
-- [ ] Position view renders with valid account
-- [ ] Position view returns 404 for invalid account
+- [x] Position view renders with valid account
+- [x] Position view returns 404 for invalid account
+- [x] Gain/loss calculations
+- [x] Account positions summary with totals
 
 **Acceptance:**
 - Can view account positions without 404 error
@@ -259,20 +261,22 @@ Key changes:
 **Implementation Notes:**
 
 Files created:
-- `app/services/position_service.py` - Position queries
-- `app/templates/account_positions.html` - Positions page
-- `app/templates/partials/position_list.html` - Positions partial
+- `app/services/position_service.py` - Position queries and calculations (market value, cost basis, gain/loss, percentages)
+- `app/templates/account_positions.html` - Positions page with summary cards
+- `app/templates/partials/position_list.html` - Positions table partial
+- `tests/test_positions.py` - 8 tests
 
 Files modified:
-- `app/routers/accounts.py` - Add `/{account_id}/positions` route
-- `app/main.py` - Change accounts prefix from `/api/accounts` to `/accounts`
-- `app/templates/base.html` - Fix accounts nav link
+- `app/routers/accounts.py` - Added `/{account_id}/positions` route
+- `app/main.py` - Changed accounts prefix from `/api/accounts` to `/accounts`
+- `app/templates/base.html` - Fixed accounts nav link
+- `app/templates/accounts.html` - Fixed HTMX endpoint
 
 **Manual Testing Checklist:**
-- [ ] Navigate to Accounts page
-- [ ] Click "View Positions" on an account
-- [ ] Verify positions load without 404
-- [ ] Verify market value and gain/loss display correctly
+- [x] Navigate to Accounts page
+- [x] Click "View Positions" on an account
+- [x] Verify positions load without 404
+- [x] Verify market value and gain/loss display correctly
 
 ---
 

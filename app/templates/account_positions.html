@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <a href="/accounts" class="btn btn-ghost btn-sm mb-2">
+            &larr; Back to Accounts
+        </a>
+        <h1 class="text-3xl font-bold">{{ account.name }}</h1>
+        <p class="text-base-content/70">{{ account.account_number }}</p>
+        {% if account.account_type %}
+        <div class="badge badge-outline mt-2">{{ account.account_type }}</div>
+        {% endif %}
+    </div>
+    <div>
+        <button
+            class="btn btn-secondary"
+            hx-post="/accounts/{{ account.id }}/positions/refresh"
+            hx-target="#positions-container"
+            hx-indicator="#refresh-spinner"
+        >
+            <span id="refresh-spinner" class="loading loading-spinner loading-sm htmx-indicator"></span>
+            Refresh Prices
+        </button>
+    </div>
+</div>
+
+<!-- Positions container for HTMX updates -->
+<div id="positions-container">
+    {% include "partials/positions_with_status.html" %}
+</div>
+{% endblock %}

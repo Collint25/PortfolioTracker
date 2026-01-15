@@ -1,0 +1,39 @@
+{% if refresh_result %}
+<div class="alert alert-info mb-4">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    <span>
+        Prices refreshed: {{ refresh_result.updated }} updated, {{ refresh_result.skipped }} skipped, {{ refresh_result.failed }} failed
+    </span>
+</div>
+{% endif %}
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Market Value</div>
+        <div class="stat-value text-lg">${{ "{:,.2f}".format(totals.market_value) }}</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Cost Basis</div>
+        <div class="stat-value text-lg">${{ "{:,.2f}".format(totals.cost_basis) }}</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Gain/Loss</div>
+        <div class="stat-value text-lg {{ 'text-success' if totals.gain_loss >= 0 else 'text-error' }}">
+            {{ "+" if totals.gain_loss >= 0 else "" }}${{ "{:,.2f}".format(totals.gain_loss) }}
+        </div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Return</div>
+        <div class="stat-value text-lg {{ 'text-success' if totals.gain_loss_percent and totals.gain_loss_percent >= 0 else 'text-error' }}">
+            {% if totals.gain_loss_percent is not none %}
+            {{ "+" if totals.gain_loss_percent >= 0 else "" }}{{ "{:.2f}".format(totals.gain_loss_percent) }}%
+            {% else %}
+            --
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Positions Table -->
+{% include "partials/position_list.html" %}

@@ -80,9 +80,17 @@ SnapTrade API → sync service → SQLite → services → routes → HTMX parti
 - [x] SnapTrade API update (per-account endpoint, no deprecation warnings)
 - [x] Positions view (market value, cost basis, gain/loss with percentages)
 - [x] Option support (option type, strike, expiration, action type; filters for CALL/PUT/action)
+- [x] Linked trades (FIFO matching for option open/close pairs, P/L calculation, manual override)
+
+### In Progress
+- [ ] Account cards with market value and daily G/L (Phase 9)
+- [ ] Dashboard enhancement with expandable positions (Phase 9.1)
+- [ ] Filter consolidation and grouping (Phase 9.2)
+- [ ] Saved filters with favorites (Phase 9.3)
+- [ ] Transaction table refactor (Phase 9.4)
 
 ### Backlog
-- [ ] Manual Transactions
-- [ ] Metrics & Dashboard
+- [ ] Manual Transactions (Phase 10)
+- [ ] Metrics & Dashboard (Phase 11)
 - [ ] Position detail views
 - [ ] Daily sync cron job (APScheduler)

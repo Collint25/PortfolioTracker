@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import TradeGroup, Transaction
 from app.models.trade_group import trade_group_transactions
+from app.services import base
 
 
 # Strategy type constants
@@ -25,12 +26,12 @@ STRATEGY_TYPES = [
 
 def get_all_trade_groups(db: Session) -> list[TradeGroup]:
     """Get all trade groups ordered by creation date (newest first)."""
-    return db.query(TradeGroup).order_by(TradeGroup.created_at.desc()).all()
+    return base.get_all(db, TradeGroup, order_by=TradeGroup.created_at.desc())
 
 
 def get_trade_group_by_id(db: Session, group_id: int) -> TradeGroup | None:
     """Get a single trade group by ID."""
-    return db.query(TradeGroup).filter(TradeGroup.id == group_id).first()
+    return base.get_by_id(db, TradeGroup, group_id)
 
 
 def create_trade_group(
@@ -40,15 +41,9 @@ def create_trade_group(
     description: str | None = None,
 ) -> TradeGroup:
     """Create a new trade group."""
-    group = TradeGroup(
-        name=name,
-        strategy_type=strategy_type,
-        description=description,
+    return base.create(
+        db, TradeGroup, name=name, strategy_type=strategy_type, description=description
     )
-    db.add(group)
-    db.commit()
-    db.refresh(group)
-    return group
 
 
 def update_trade_group(
@@ -75,12 +70,7 @@ def update_trade_group(
 
 def delete_trade_group(db: Session, group_id: int) -> bool:
     """Delete a trade group. Returns True if deleted, False if not found."""
-    group = get_trade_group_by_id(db, group_id)
-    if not group:
-        return False
-    db.delete(group)
-    db.commit()
-    return True
+    return base.delete(db, TradeGroup, group_id)
 
 
 def add_transaction_to_group(

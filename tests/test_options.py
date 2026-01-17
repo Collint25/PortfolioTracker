@@ -11,7 +11,7 @@ from app.models.base import Base
 from app.models.account import Account
 from app.models.transaction import Transaction
 from app.models.position import Position
-from app.services.sync_service import _extract_option_data
+from app.services.sync.snaptrade_parser import extract_option_data
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def sample_account(db_session):
 class TestOptionExtraction:
     """Test option data extraction from raw JSON."""
 
-    def test_extract_option_data_with_option(self):
+    def testextract_option_data_with_option(self):
         """Test extracting option data from a valid option transaction."""
         raw_data = {
             "option_symbol": {
@@ -61,7 +61,7 @@ class TestOptionExtraction:
             "option_type": "BUY_TO_OPEN",
         }
 
-        result = _extract_option_data(raw_data)
+        result = extract_option_data(raw_data)
 
         assert result["is_option"] is True
         assert result["option_type"] == "CALL"
@@ -71,7 +71,7 @@ class TestOptionExtraction:
         assert result["underlying_symbol"] == "AAPL"
         assert result["option_action"] == "BUY_TO_OPEN"
 
-    def test_extract_option_data_without_option(self):
+    def testextract_option_data_without_option(self):
         """Test extracting from a non-option transaction."""
         raw_data = {
             "symbol": {"symbol": "AAPL"},
@@ -79,7 +79,7 @@ class TestOptionExtraction:
             "option_type": "",
         }
 
-        result = _extract_option_data(raw_data)
+        result = extract_option_data(raw_data)
 
         assert result["is_option"] is False
         assert result["option_type"] is None
@@ -89,7 +89,7 @@ class TestOptionExtraction:
         assert result["underlying_symbol"] is None
         assert result["option_action"] is None
 
-    def test_extract_option_data_put_option(self):
+    def testextract_option_data_put_option(self):
         """Test extracting PUT option data."""
         raw_data = {
             "option_symbol": {
@@ -106,7 +106,7 @@ class TestOptionExtraction:
             "option_type": "SELL_TO_CLOSE",
         }
 
-        result = _extract_option_data(raw_data)
+        result = extract_option_data(raw_data)
 
         assert result["is_option"] is True
         assert result["option_type"] == "PUT"

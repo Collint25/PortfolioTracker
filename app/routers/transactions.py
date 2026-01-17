@@ -1,13 +1,11 @@
-from datetime import date
-
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Account
-from app.services import tag_service, transaction_service
+from app.services import account_service, tag_service, transaction_service
+from app.utils.query_params import parse_int_param, parse_bool_param, parse_date_param
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -34,25 +32,17 @@ def list_transactions(
     """List transactions with filtering, sorting, and pagination."""
     per_page = 50
 
-    # Convert empty strings to None and parse types
-    account_id_int = int(account_id) if account_id else None
-    tag_id_int = int(tag_id) if tag_id else None
-    symbol_val = symbol if symbol else None
-    type_val = type if type else None
-    search_val = search if search else None
-    option_type_val = option_type if option_type else None
-    option_action_val = option_action if option_action else None
-    # Parse is_option: "true"/"false" -> True/False, empty -> None
-    is_option_val = None
-    if is_option == "true":
-        is_option_val = True
-    elif is_option == "false":
-        is_option_val = False
-
-    # Parse dates
-    from datetime import datetime
-    start_date_val = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-    end_date_val = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+    # Parse query params using utilities
+    account_id_int = parse_int_param(account_id)
+    tag_id_int = parse_int_param(tag_id)
+    symbol_val = symbol or None
+    type_val = type or None
+    search_val = search or None
+    option_type_val = option_type or None
+    option_action_val = option_action or None
+    is_option_val = parse_bool_param(is_option)
+    start_date_val = parse_date_param(start_date)
+    end_date_val = parse_date_param(end_date)
 
     transactions, total = transaction_service.get_transactions(
         db,
@@ -72,11 +62,10 @@ def list_transactions(
         per_page=per_page,
     )
 
-    # Calculate pagination info
     total_pages = (total + per_page - 1) // per_page
 
     # Get filter options
-    accounts = db.query(Account).order_by(Account.name).all()
+    accounts = account_service.get_all_accounts(db)
     symbols = transaction_service.get_unique_symbols(db)
     types = transaction_service.get_unique_types(db)
     tags = tag_service.get_all_tags(db)
@@ -143,18 +132,7 @@ def transaction_detail(
             status_code=404,
         )
 
-    # Get related transactions (same external_reference_id for multi-leg)
-    related = []
-    if transaction.external_reference_id:
-        from app.models import Transaction
-        related = (
-            db.query(Transaction)
-            .filter(
-                Transaction.external_reference_id == transaction.external_reference_id,
-                Transaction.id != transaction.id,
-            )
-            .all()
-        )
+    related = transaction_service.get_related_transactions(db, transaction)
 
     return templates.TemplateResponse(
         request=request,

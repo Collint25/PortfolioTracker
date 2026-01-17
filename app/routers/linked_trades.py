@@ -6,7 +6,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services import linked_trade_service
+from app.services import account_service, linked_trade_service
+from app.utils.query_params import parse_bool_param
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -22,12 +23,7 @@ def list_linked_trades(
     page: int = Query(1, ge=1),
 ):
     """List all linked trades with filters."""
-    # Convert is_closed string to bool
-    closed_filter = None
-    if is_closed == "true":
-        closed_filter = True
-    elif is_closed == "false":
-        closed_filter = False
+    closed_filter = parse_bool_param(is_closed)
 
     linked_trades, total = linked_trade_service.get_all_linked_trades(
         db,
@@ -38,18 +34,9 @@ def list_linked_trades(
         per_page=50,
     )
 
-    # Get summary stats
     summary = linked_trade_service.get_pl_summary(db, account_id)
-
-    # Get unique symbols for filter dropdown
-    from app.models import LinkedTrade
-    symbols = db.query(LinkedTrade.underlying_symbol).distinct().order_by(LinkedTrade.underlying_symbol).all()
-    symbols = [s[0] for s in symbols]
-
-    # Get accounts for filter
-    from app.models import Account
-    accounts = db.query(Account).all()
-
+    symbols = linked_trade_service.get_unique_symbols(db)
+    accounts = account_service.get_all_accounts(db)
     total_pages = (total + 49) // 50
 
     context = {
@@ -104,14 +91,10 @@ def run_auto_match(
     """Run FIFO auto-matching on all unlinked transactions."""
     result = linked_trade_service.auto_match_all(db, account_id)
 
-    # Return updated list
     linked_trades, total = linked_trade_service.get_all_linked_trades(db, account_id=account_id)
     summary = linked_trade_service.get_pl_summary(db, account_id)
-
-    from app.models import LinkedTrade, Account
-    symbols = db.query(LinkedTrade.underlying_symbol).distinct().order_by(LinkedTrade.underlying_symbol).all()
-    symbols = [s[0] for s in symbols]
-    accounts = db.query(Account).all()
+    symbols = linked_trade_service.get_unique_symbols(db)
+    accounts = account_service.get_all_accounts(db)
 
     context = {
         "request": request,
@@ -130,18 +113,12 @@ def run_auto_match(
 
 
 @router.delete("/{linked_trade_id}", response_class=HTMLResponse)
-def delete_linked_trade(
-    request: Request,
+def delete_linked_trade_route(
     linked_trade_id: int,
     db: Session = Depends(get_db),
 ):
     """Delete a linked trade (unlink transactions)."""
-    from app.models import LinkedTrade
-    linked_trade = db.query(LinkedTrade).filter(LinkedTrade.id == linked_trade_id).first()
-    if linked_trade:
-        db.delete(linked_trade)
-        db.commit()
-
+    linked_trade_service.delete_linked_trade(db, linked_trade_id)
     # Return empty response for HTMX to remove the row
     return HTMLResponse(content="", status_code=200)
 

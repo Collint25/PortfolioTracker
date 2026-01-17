@@ -38,13 +38,7 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)) -> HTMLRespons
 @router.get("/status", response_class=HTMLResponse)
 def sync_status(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
     """Get current sync status (record counts)."""
-    from app.models import Account, Position, Transaction
-
-    counts = {
-        "accounts": db.query(Account).count(),
-        "positions": db.query(Position).count(),
-        "transactions": db.query(Transaction).count(),
-    }
+    counts = sync_service.get_sync_status(db)
 
     return templates.TemplateResponse(
         request=request,

@@ -90,6 +90,22 @@ def get_transaction_by_id(db: Session, transaction_id: int) -> Transaction | Non
     return db.query(Transaction).filter(Transaction.id == transaction_id).first()
 
 
+def get_related_transactions(
+    db: Session, transaction: Transaction
+) -> list[Transaction]:
+    """Get related transactions (same external_reference_id for multi-leg trades)."""
+    if not transaction.external_reference_id:
+        return []
+    return (
+        db.query(Transaction)
+        .filter(
+            Transaction.external_reference_id == transaction.external_reference_id,
+            Transaction.id != transaction.id,
+        )
+        .all()
+    )
+
+
 def get_unique_symbols(db: Session) -> list[str]:
     """Get all unique symbols from transactions."""
     results = (

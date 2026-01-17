@@ -1,16 +1,17 @@
 from sqlalchemy.orm import Session
 
 from app.models import Tag, Transaction
+from app.services import base
 
 
 def get_all_tags(db: Session) -> list[Tag]:
     """Get all tags ordered by name."""
-    return db.query(Tag).order_by(Tag.name).all()
+    return base.get_all(db, Tag, order_by=Tag.name)
 
 
 def get_tag_by_id(db: Session, tag_id: int) -> Tag | None:
     """Get a single tag by ID."""
-    return db.query(Tag).filter(Tag.id == tag_id).first()
+    return base.get_by_id(db, Tag, tag_id)
 
 
 def get_tag_by_name(db: Session, name: str) -> Tag | None:
@@ -20,35 +21,19 @@ def get_tag_by_name(db: Session, name: str) -> Tag | None:
 
 def create_tag(db: Session, name: str, color: str = "neutral") -> Tag:
     """Create a new tag."""
-    tag = Tag(name=name, color=color)
-    db.add(tag)
-    db.commit()
-    db.refresh(tag)
-    return tag
+    return base.create(db, Tag, name=name, color=color)
 
 
-def update_tag(db: Session, tag_id: int, name: str | None = None, color: str | None = None) -> Tag | None:
+def update_tag(
+    db: Session, tag_id: int, name: str | None = None, color: str | None = None
+) -> Tag | None:
     """Update an existing tag."""
-    tag = get_tag_by_id(db, tag_id)
-    if not tag:
-        return None
-    if name is not None:
-        tag.name = name
-    if color is not None:
-        tag.color = color
-    db.commit()
-    db.refresh(tag)
-    return tag
+    return base.update(db, Tag, tag_id, name=name, color=color)
 
 
 def delete_tag(db: Session, tag_id: int) -> bool:
     """Delete a tag. Returns True if deleted, False if not found."""
-    tag = get_tag_by_id(db, tag_id)
-    if not tag:
-        return False
-    db.delete(tag)
-    db.commit()
-    return True
+    return base.delete(db, Tag, tag_id)
 
 
 def add_tag_to_transaction(db: Session, transaction_id: int, tag_id: int) -> bool:

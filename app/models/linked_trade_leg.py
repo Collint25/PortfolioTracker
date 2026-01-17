@@ -38,7 +38,9 @@ class LinkedTradeLeg(Base, TimestampMixin):
 
     # Relationships
     linked_trade: Mapped["LinkedTrade"] = relationship(back_populates="legs")
-    transaction: Mapped["Transaction"] = relationship(back_populates="linked_trade_legs")
+    transaction: Mapped["Transaction"] = relationship(
+        back_populates="linked_trade_legs"
+    )
 
     @property
     def cash_impact(self) -> Decimal:

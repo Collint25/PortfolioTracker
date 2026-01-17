@@ -7,10 +7,10 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models.base import Base
 from app.models.account import Account
-from app.models.transaction import Transaction
+from app.models.base import Base
 from app.models.position import Position
+from app.models.transaction import Transaction
 from app.services.sync.snaptrade_parser import extract_option_data
 
 
@@ -137,7 +137,9 @@ class TestOptionTransactionModel:
         db_session.commit()
 
         # Query it back
-        saved = db_session.query(Transaction).filter_by(snaptrade_id="txn-opt-1").first()
+        saved = (
+            db_session.query(Transaction).filter_by(snaptrade_id="txn-opt-1").first()
+        )
         assert saved.is_option is True
         assert saved.option_type == "CALL"
         assert saved.strike_price == Decimal("250.00")
@@ -158,7 +160,9 @@ class TestOptionTransactionModel:
         db_session.add(txn)
         db_session.commit()
 
-        saved = db_session.query(Transaction).filter_by(snaptrade_id="txn-stock-1").first()
+        saved = (
+            db_session.query(Transaction).filter_by(snaptrade_id="txn-stock-1").first()
+        )
         assert saved.is_option is False
         assert saved.option_type is None
 
@@ -221,6 +225,7 @@ class TestTransactionServiceFilters:
 
         # Filter for options only
         from app.services.transaction_service import get_transactions
+
         options, count = get_transactions(db_session, is_option=True)
         assert count == 1
         assert options[0].is_option is True

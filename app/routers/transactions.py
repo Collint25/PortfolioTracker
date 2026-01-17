@@ -6,8 +6,13 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services import account_service, saved_filter_service, tag_service, transaction_service
-from app.utils.query_params import parse_int_param, parse_bool_param, parse_date_param
+from app.services import (
+    account_service,
+    saved_filter_service,
+    tag_service,
+    transaction_service,
+)
+from app.utils.query_params import parse_bool_param, parse_date_param, parse_int_param
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -28,17 +33,17 @@ def build_filter_query_string(
     sort_dir: str,
 ) -> str:
     """Build a URL query string from filter parameters."""
-    params = {}
+    params: dict[str, str] = {}
     if search:
         params["search"] = search
     if account_id:
-        params["account_id"] = account_id
+        params["account_id"] = str(account_id)
     if symbol:
         params["symbol"] = symbol
     if type:
         params["type"] = type
     if tag_id:
-        params["tag_id"] = tag_id
+        params["tag_id"] = str(tag_id)
     if start_date:
         params["start_date"] = str(start_date)
     if end_date:

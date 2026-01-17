@@ -1,0 +1,24 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run linter
+      - id: ruff
+        args: [--fix]
+      # Run formatter
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [
+          "sqlalchemy[mypy]>=2.0.0",
+          "types-python-dateutil",
+          "fastapi>=0.109.0",
+          "pydantic-settings>=2.1.0",
+          "httpx>=0.26.0",
+          "pytest>=8.0.0",
+        ]
+        args: [--config-file=pyproject.toml]
+        exclude: ^alembic/

@@ -12,6 +12,41 @@ Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 - `uv run pytest` - run tests
 - `uv run alembic upgrade head` - run migrations
 
+## Documentation
+
+For architectural overview and system design:
+- See `/docs/onboarding.md` for architecture diagram and component descriptions
+- See `/docs/codebase_analysis.json` for machine-readable architecture data
+
+The docs provide high-level context on the "Sync-Process-Present" flow and how components like the Sync Orchestrator, Domain Logic Engine, and Transaction Manager interact.
+
+## Code Quality
+
+### Linting & Type Checking
+- `uv run ruff check .` - check for lint issues
+- `uv run ruff check . --fix` - auto-fix lint issues
+- `uv run ruff format .` - format code
+- `uv run mypy app/ tests/` - run type checker
+
+### Pre-commit Hooks
+- `uv run pre-commit install` - install git hooks (one-time)
+- `uv run pre-commit run --all-files` - run hooks manually
+
+Git hooks run automatically on commit and enforce:
+- Code formatting (ruff format)
+- Import sorting (ruff isort)
+- Type checking (mypy)
+
+To bypass hooks (rare): `git commit --no-verify`
+
+### CI Checks
+All PRs must pass:
+- Ruff linting
+- Ruff formatting
+- Mypy type checking
+
+See `.github/workflows/lint.yml` for details.
+
 ## Git workflow
 GitHub Flow: feature branch → PR → main
 
@@ -20,6 +55,15 @@ GitHub Flow: feature branch → PR → main
 - Merge PR, delete branch
 - Never push directly to main
 - Branch naming: `feature/thing`, `fix/bug`
+
+## Plan
+
+When writing implementation plans:
+- **Extreme concision** - sacrifice grammar for brevity
+- Bullets over prose
+- Omit articles (a, an, the)
+- Use fragments, not sentences
+- **End with unresolved questions** - list anything needing clarification
 
 ## Structure
 - app/models/ - SQLAlchemy models
@@ -30,9 +74,11 @@ GitHub Flow: feature branch → PR → main
 
 ## Code style
 - Small functions
-- Type hints on all signatures
+- Type hints on all signatures (enforced by mypy)
 - Services handle logic, routes handle HTTP
 - Config values in app/config.py not hardcoded
+- Formatting: Ruff (88 char line length)
+- Imports: Auto-sorted by ruff isort
 
 ## Architecture
 

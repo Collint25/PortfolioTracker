@@ -1,6 +1,6 @@
 """Base CRUD operations for services."""
 
-from typing import Any, Generic, Type, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sqlalchemy.orm import Session
 
@@ -19,15 +19,13 @@ class CRUDMixin(Generic[T]):
         tag = tag_crud.get_by_id(db, 1)
     """
 
-    model: Type[T]
+    model: type[T]
 
     def get_by_id(self, db: Session, id: int) -> T | None:
         """Get a single record by ID."""
-        return db.query(self.model).filter(self.model.id == id).first()
+        return db.query(self.model).filter(self.model.id == id).first()  # type: ignore[attr-defined]
 
-    def get_all(
-        self, db: Session, *, order_by: Any | None = None
-    ) -> list[T]:
+    def get_all(self, db: Session, *, order_by: Any | None = None) -> list[T]:
         """Get all records, optionally ordered."""
         query = db.query(self.model)
         if order_by is not None:
@@ -64,12 +62,12 @@ class CRUDMixin(Generic[T]):
         return True
 
 
-def get_by_id(db: Session, model: Type[T], id: int) -> T | None:
+def get_by_id(db: Session, model: type[T], id: int) -> T | None:
     """Generic get by ID function."""
-    return db.query(model).filter(model.id == id).first()
+    return db.query(model).filter(model.id == id).first()  # type: ignore[attr-defined]
 
 
-def get_all(db: Session, model: Type[T], order_by: Any | None = None) -> list[T]:
+def get_all(db: Session, model: type[T], order_by: Any | None = None) -> list[T]:
     """Generic get all function."""
     query = db.query(model)
     if order_by is not None:
@@ -77,7 +75,7 @@ def get_all(db: Session, model: Type[T], order_by: Any | None = None) -> list[T]
     return query.all()
 
 
-def create(db: Session, model: Type[T], **kwargs) -> T:
+def create(db: Session, model: type[T], **kwargs) -> T:
     """Generic create function."""
     obj = model(**kwargs)
     db.add(obj)
@@ -86,7 +84,7 @@ def create(db: Session, model: Type[T], **kwargs) -> T:
     return obj
 
 
-def update(db: Session, model: Type[T], id: int, **kwargs) -> T | None:
+def update(db: Session, model: type[T], id: int, **kwargs) -> T | None:
     """Generic update function. Returns None if not found."""
     obj = get_by_id(db, model, id)
     if not obj:
@@ -99,7 +97,7 @@ def update(db: Session, model: Type[T], id: int, **kwargs) -> T | None:
     return obj
 
 
-def delete(db: Session, model: Type[T], id: int) -> bool:
+def delete(db: Session, model: type[T], id: int) -> bool:
     """Generic delete function. Returns True if deleted."""
     obj = get_by_id(db, model, id)
     if not obj:

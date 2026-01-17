@@ -39,10 +39,12 @@ def get_all_accounts_with_totals(db: Session) -> list[dict]:
     result = []
     for account in accounts:
         totals = _calculate_account_totals(account.positions)
-        result.append({
-            "account": account,
-            "totals": totals,
-        })
+        result.append(
+            {
+                "account": account,
+                "totals": totals,
+            }
+        )
 
     return result
 
@@ -68,16 +70,16 @@ def _calculate_account_totals(positions: list[Position]) -> dict:
 
         # Daily change
         if position.current_price is not None and position.previous_close is not None:
-            daily_change = (position.current_price - position.previous_close) * position.quantity
+            daily_change = (
+                position.current_price - position.previous_close
+            ) * position.quantity
             total_daily_change += daily_change
             total_previous_value += position.previous_close * position.quantity
             has_daily_data = True
 
     total_gain_loss = total_market_value - total_cost_basis
     total_gain_loss_percent = (
-        (total_gain_loss / total_cost_basis) * 100
-        if total_cost_basis != 0
-        else None
+        (total_gain_loss / total_cost_basis) * 100 if total_cost_basis != 0 else None
     )
 
     total_daily_change_percent = (

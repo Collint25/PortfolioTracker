@@ -8,18 +8,15 @@ from sqlalchemy.orm import Session
 from app.models import Account, Position
 from app.services.snaptrade_client import fetch_holdings, fetch_option_holdings
 from app.services.sync.snaptrade_parser import (
-    extract_holding_option_data,
     extract_currency,
+    extract_holding_option_data,
     to_decimal,
-    parse_date,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def sync_positions(
-    db: Session, client, user_id: str, user_secret: str
-) -> int:
+def sync_positions(db: Session, client, user_id: str, user_secret: str) -> int:
     """Sync positions for all accounts (stock and option holdings)."""
     accounts = db.query(Account).all()
     count = 0
@@ -72,7 +69,9 @@ def _sync_option_positions(
             continue
 
         option_data = extract_holding_option_data(data)
-        symbol_str = option_data["underlying_symbol"] or option_data["option_ticker"] or ""
+        symbol_str = (
+            option_data["underlying_symbol"] or option_data["option_ticker"] or ""
+        )
 
         position = _get_or_create_position(db, snaptrade_id, account.id)
         _update_position_fields(position, data, symbol_str, is_option=True)
@@ -91,10 +90,14 @@ def _get_holding_snaptrade_id(data: dict, account_snaptrade_id: str) -> str | No
     return f"{account_snaptrade_id}:{symbol_id}"
 
 
-def _get_option_holding_snaptrade_id(data: dict, account_snaptrade_id: str) -> str | None:
+def _get_option_holding_snaptrade_id(
+    data: dict, account_snaptrade_id: str
+) -> str | None:
     """Generate compound ID for option holding: account_id:opt:option_id."""
     symbol_data = data.get("symbol", {})
-    option_symbol = symbol_data.get("option_symbol", {}) if isinstance(symbol_data, dict) else {}
+    option_symbol = (
+        symbol_data.get("option_symbol", {}) if isinstance(symbol_data, dict) else {}
+    )
     option_id = option_symbol.get("id") if option_symbol else None
     if not option_id:
         return None
@@ -104,15 +107,20 @@ def _get_option_holding_snaptrade_id(data: dict, account_snaptrade_id: str) -> s
 def _extract_holding_symbol(data: dict) -> str:
     """Extract symbol string from holding data (deeply nested)."""
     symbol_outer = data.get("symbol", {})
-    symbol_inner = symbol_outer.get("symbol", {}) if isinstance(symbol_outer, dict) else {}
+    symbol_inner = (
+        symbol_outer.get("symbol", {}) if isinstance(symbol_outer, dict) else {}
+    )
     if isinstance(symbol_inner, dict):
-        return symbol_inner.get("symbol", "")
+        result = symbol_inner.get("symbol", "")
+        return str(result) if result else ""
     if isinstance(symbol_inner, str):
         return symbol_inner
     return ""
 
 
-def _get_or_create_position(db: Session, snaptrade_id: str, account_id: int) -> Position:
+def _get_or_create_position(
+    db: Session, snaptrade_id: str, account_id: int
+) -> Position:
     """Get existing position or create new one."""
     position = db.query(Position).filter(Position.snaptrade_id == snaptrade_id).first()
     if not position:

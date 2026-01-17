@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
-from app.models import Transaction, Account
+from app.models import Transaction
 from app.models.tag import transaction_tags
 
 
@@ -120,12 +120,7 @@ def get_unique_symbols(db: Session) -> list[str]:
 
 def get_unique_types(db: Session) -> list[str]:
     """Get all unique transaction types."""
-    results = (
-        db.query(Transaction.type)
-        .distinct()
-        .order_by(Transaction.type)
-        .all()
-    )
+    results = db.query(Transaction.type).distinct().order_by(Transaction.type).all()
     return [r[0] for r in results if r[0]]
 
 

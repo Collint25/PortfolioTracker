@@ -98,7 +98,7 @@ def get_unlinked_option_transactions(
     linked_txn_ids = db.query(LinkedTradeLeg.transaction_id).scalar_subquery()
 
     query = db.query(Transaction).filter(
-        Transaction.is_option == True,
+        Transaction.is_option,
         Transaction.option_action.isnot(None),
         ~Transaction.id.in_(linked_txn_ids),
     )
@@ -111,7 +111,7 @@ def get_unlinked_option_transactions(
 
 def get_open_positions(db: Session, account_id: int | None = None) -> list[LinkedTrade]:
     """Get all linked trades that are not fully closed."""
-    query = db.query(LinkedTrade).filter(LinkedTrade.is_closed == False)
+    query = db.query(LinkedTrade).filter(LinkedTrade.is_closed.is_(False))
 
     if account_id is not None:
         query = query.filter(LinkedTrade.account_id == account_id)
@@ -133,7 +133,7 @@ def find_unique_contracts(
         Transaction.strike_price,
         Transaction.expiration_date,
     ).filter(
-        Transaction.is_option == True,
+        Transaction.is_option,
         Transaction.option_action.isnot(None),
         Transaction.underlying_symbol.isnot(None),
         Transaction.option_type.isnot(None),
@@ -208,10 +208,7 @@ def _determine_direction(open_action: str) -> tuple[str, str]:
 
 def _init_open_remaining(opens: list[Transaction]) -> dict[int, Decimal]:
     """Initialize tracking dict for remaining quantity per opening transaction."""
-    return {
-        t.id: abs(t.quantity) if t.quantity else Decimal("0")
-        for t in opens
-    }
+    return {t.id: abs(t.quantity) if t.quantity else Decimal("0") for t in opens}
 
 
 def _get_next_open_with_remaining(
@@ -234,7 +231,9 @@ def _allocate_close_to_opens(
 
     Returns list of (open_txn, allocated_qty) tuples.
     """
-    close_qty_remaining = abs(close_txn.quantity) if close_txn.quantity else Decimal("0")
+    close_qty_remaining = (
+        abs(close_txn.quantity) if close_txn.quantity else Decimal("0")
+    )
     allocations: list[tuple[Transaction, Decimal]] = []
 
     while close_qty_remaining > 0:
@@ -327,7 +326,10 @@ def auto_match_contract(db: Session, contract_key: ContractKey) -> list[LinkedTr
         return []
 
     # Determine direction from first opening trade
-    direction, close_action = _determine_direction(opens[0].option_action)
+    first_action = opens[0].option_action
+    if not first_action:
+        return []  # Can't determine direction without action
+    direction, close_action = _determine_direction(first_action)
 
     # Get closing transactions
     closes = _find_transactions_for_contract(db, contract_key, [close_action])
@@ -362,7 +364,9 @@ def auto_match_contract(db: Session, contract_key: ContractKey) -> list[LinkedTr
             total_close_qty = Decimal("0")
             for open_txn, alloc_qty in allocations:
                 if open_txn.id not in open_legs_added:
-                    full_open_qty = abs(open_txn.quantity) if open_txn.quantity else Decimal("0")
+                    full_open_qty = (
+                        abs(open_txn.quantity) if open_txn.quantity else Decimal("0")
+                    )
                     _add_open_leg(db, current_link, open_txn, full_open_qty)
                     open_legs_added.add(open_txn.id)
                 total_close_qty += alloc_qty
@@ -373,7 +377,9 @@ def auto_match_contract(db: Session, contract_key: ContractKey) -> list[LinkedTr
             # Check if position is fully closed
             if current_link.total_closed_quantity >= current_link.total_opened_quantity:
                 current_link.is_closed = True
-                current_link.realized_pl = calculate_linked_trade_pl(db, current_link.id)
+                current_link.realized_pl = calculate_linked_trade_pl(
+                    db, current_link.id
+                )
 
     # Handle remaining opens (position still open)
     for open_txn in opens:

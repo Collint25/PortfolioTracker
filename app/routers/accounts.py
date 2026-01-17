@@ -11,9 +11,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)
-def list_accounts(
-    request: Request, db: Session = Depends(get_db)
-) -> HTMLResponse:
+def list_accounts(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
     """List all accounts with totals."""
     accounts_with_totals = account_service.get_all_accounts_with_totals(db)
 

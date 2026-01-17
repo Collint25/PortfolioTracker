@@ -4,9 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import TradeGroup, Transaction
-from app.models.trade_group import trade_group_transactions
 from app.services import base
-
 
 # Strategy type constants
 STRATEGY_TYPES = [
@@ -73,9 +71,7 @@ def delete_trade_group(db: Session, group_id: int) -> bool:
     return base.delete(db, TradeGroup, group_id)
 
 
-def add_transaction_to_group(
-    db: Session, group_id: int, transaction_id: int
-) -> bool:
+def add_transaction_to_group(db: Session, group_id: int, transaction_id: int) -> bool:
     """Add a transaction to a trade group. Returns True if successful."""
     group = get_trade_group_by_id(db, group_id)
     transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
@@ -122,7 +118,7 @@ def calculate_group_pl(db: Session, group_id: int) -> Decimal:
     group = get_trade_group_by_id(db, group_id)
     if not group or not group.transactions:
         return Decimal("0")
-    return sum(t.amount for t in group.transactions)
+    return sum((t.amount for t in group.transactions), start=Decimal("0"))
 
 
 def get_ungrouped_multileg_candidates(db: Session) -> dict[str, list[Transaction]]:
@@ -151,10 +147,14 @@ def get_ungrouped_multileg_candidates(db: Session) -> dict[str, list[Transaction
         # Check if these transactions are already fully grouped together
         if transactions:
             first_groups = set(g.id for g in transactions[0].trade_groups)
-            all_same_group = all(
-                any(g.id in first_groups for g in t.trade_groups)
-                for t in transactions[1:]
-            ) if first_groups else False
+            all_same_group = (
+                all(
+                    any(g.id in first_groups for g in t.trade_groups)
+                    for t in transactions[1:]
+                )
+                if first_groups
+                else False
+            )
 
             if not all_same_group:
                 result[ext_ref_id] = transactions

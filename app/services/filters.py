@@ -1,13 +1,12 @@
 """Filter dataclasses and query builders for service layer."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
-from typing import Any
 
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Query
 
-from app.models import Transaction, LinkedTrade
+from app.models import LinkedTrade, Transaction
 from app.models.tag import transaction_tags
 
 

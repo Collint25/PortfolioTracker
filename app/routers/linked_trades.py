@@ -70,6 +70,7 @@ def linked_trade_detail(
     linked_trade = linked_trade_service.get_linked_trade_by_id(db, linked_trade_id)
     if not linked_trade:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Linked trade not found")
 
     context = {
@@ -78,7 +79,9 @@ def linked_trade_detail(
     }
 
     if request.headers.get("HX-Request"):
-        return templates.TemplateResponse("partials/linked_trade_detail_content.html", context)
+        return templates.TemplateResponse(
+            "partials/linked_trade_detail_content.html", context
+        )
     return templates.TemplateResponse("linked_trade_detail.html", context)
 
 
@@ -91,7 +94,9 @@ def run_auto_match(
     """Run FIFO auto-matching on all unlinked transactions."""
     result = linked_trade_service.auto_match_all(db, account_id)
 
-    linked_trades, total = linked_trade_service.get_all_linked_trades(db, account_id=account_id)
+    linked_trades, total = linked_trade_service.get_all_linked_trades(
+        db, account_id=account_id
+    )
     summary = linked_trade_service.get_pl_summary(db, account_id)
     symbols = linked_trade_service.get_unique_symbols(db)
     accounts = account_service.get_all_accounts(db)
@@ -102,7 +107,11 @@ def run_auto_match(
         "summary": summary,
         "symbols": symbols,
         "accounts": accounts,
-        "filters": {"account_id": account_id, "underlying_symbol": None, "is_closed": None},
+        "filters": {
+            "account_id": account_id,
+            "underlying_symbol": None,
+            "is_closed": None,
+        },
         "page": 1,
         "total_pages": (total + 49) // 50,
         "total": total,
@@ -130,7 +139,9 @@ def get_transaction_links(
     db: Session = Depends(get_db),
 ):
     """Get linked trades for a specific transaction (for embedding in detail page)."""
-    linked_trades = linked_trade_service.get_linked_trades_for_transaction(db, transaction_id)
+    linked_trades = linked_trade_service.get_linked_trades_for_transaction(
+        db, transaction_id
+    )
 
     context = {
         "request": request,
@@ -138,4 +149,6 @@ def get_transaction_links(
         "transaction_id": transaction_id,
     }
 
-    return templates.TemplateResponse("partials/transaction_linked_trades.html", context)
+    return templates.TemplateResponse(
+        "partials/transaction_linked_trades.html", context
+    )

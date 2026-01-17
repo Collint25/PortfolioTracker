@@ -37,9 +37,9 @@ def backfill_option_data():
     """Backfill option fields from raw JSON for all transactions."""
     db = SessionLocal()
     try:
-        transactions = db.query(Transaction).filter(
-            Transaction._raw_json.isnot(None)
-        ).all()
+        transactions = (
+            db.query(Transaction).filter(Transaction._raw_json.isnot(None)).all()
+        )
 
         updated = 0
         option_count = 0

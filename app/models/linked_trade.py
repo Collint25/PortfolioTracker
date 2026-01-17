@@ -31,9 +31,7 @@ class LinkedTrade(Base, TimestampMixin):
     direction: Mapped[str] = mapped_column(String(10))
 
     # Calculated P/L (sum of all leg amounts)
-    realized_pl: Mapped[Decimal] = mapped_column(
-        Numeric(18, 4), default=Decimal("0")
-    )
+    realized_pl: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0"))
 
     # Status tracking
     is_closed: Mapped[bool] = mapped_column(Boolean, default=False, index=True)

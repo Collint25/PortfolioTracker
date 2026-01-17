@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 import httpx
 from sqlalchemy.orm import Session
@@ -71,17 +72,13 @@ def get_quote(symbol: str) -> QuoteData | None:
         return None
 
 
-def refresh_position_prices(db: Session, account_id: int) -> dict[str, any]:
+def refresh_position_prices(db: Session, account_id: int) -> dict[str, Any]:
     """
     Refresh current prices and previous close for all positions in an account.
 
     Returns summary of updated positions.
     """
-    positions = (
-        db.query(Position)
-        .filter(Position.account_id == account_id)
-        .all()
-    )
+    positions = db.query(Position).filter(Position.account_id == account_id).all()
 
     updated = 0
     failed = 0
@@ -106,7 +103,9 @@ def refresh_position_prices(db: Session, account_id: int) -> dict[str, any]:
             position.current_price = current_price
             position.previous_close = prev_close
             updated += 1
-            logger.info("Updated %s: $%s (prev: $%s)", symbol, current_price, prev_close)
+            logger.info(
+                "Updated %s: $%s (prev: $%s)", symbol, current_price, prev_close
+            )
         else:
             failed += 1
 

@@ -62,7 +62,9 @@ def calculate_daily_change_percent(position: Position) -> Decimal | None:
         return None
     if position.previous_close == 0:
         return None
-    return ((position.current_price - position.previous_close) / position.previous_close) * 100
+    return (
+        (position.current_price - position.previous_close) / position.previous_close
+    ) * 100
 
 
 def get_position_summary(position: Position) -> dict:
@@ -107,13 +109,13 @@ def get_account_positions_summary(
             has_daily_data = True
         # Track previous value for accurate percent calculation
         if s["position"].previous_close is not None and s["position"].quantity:
-            total_previous_value += s["position"].previous_close * s["position"].quantity
+            total_previous_value += (
+                s["position"].previous_close * s["position"].quantity
+            )
 
     total_gain_loss = total_market_value - total_cost_basis
     total_gain_loss_percent = (
-        (total_gain_loss / total_cost_basis) * 100
-        if total_cost_basis != 0
-        else None
+        (total_gain_loss / total_cost_basis) * 100 if total_cost_basis != 0 else None
     )
 
     # Daily change percent based on previous value

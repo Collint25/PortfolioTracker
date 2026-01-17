@@ -1,7 +1,6 @@
 """Sync orchestration service for SnapTrade data synchronization."""
 
 import logging
-from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
@@ -41,9 +40,7 @@ def sync_all(db: Session) -> dict[str, int]:
     }
 
 
-def sync_accounts(
-    db: Session, client, user_id: str, user_secret: str
-) -> int:
+def sync_accounts(db: Session, client, user_id: str, user_secret: str) -> int:
     """Sync accounts from SnapTrade."""
     accounts_data = fetch_accounts(client, user_id, user_secret)
     count = 0

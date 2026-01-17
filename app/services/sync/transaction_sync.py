@@ -7,16 +7,14 @@ from sqlalchemy.orm import Session
 from app.models import Account, Transaction
 from app.services.snaptrade_client import fetch_account_activities
 from app.services.sync.snaptrade_parser import (
-    extract_option_data,
     extract_currency,
-    to_decimal,
+    extract_option_data,
     parse_date,
+    to_decimal,
 )
 
 
-def sync_transactions(
-    db: Session, client, user_id: str, user_secret: str
-) -> int:
+def sync_transactions(db: Session, client, user_id: str, user_secret: str) -> int:
     """Sync all transactions using per-account endpoint."""
     accounts = db.query(Account).all()
     count = 0
@@ -53,9 +51,9 @@ def _get_or_create_transaction(
     db: Session, snaptrade_id: str, account_id: int
 ) -> Transaction:
     """Get existing transaction or create new one."""
-    transaction = db.query(Transaction).filter(
-        Transaction.snaptrade_id == snaptrade_id
-    ).first()
+    transaction = (
+        db.query(Transaction).filter(Transaction.snaptrade_id == snaptrade_id).first()
+    )
     if not transaction:
         transaction = Transaction(snaptrade_id=snaptrade_id, account_id=account_id)
         db.add(transaction)
@@ -66,14 +64,20 @@ def _update_transaction_fields(transaction: Transaction, data: dict) -> None:
     """Update transaction fields from API data."""
     # Extract symbol
     symbol = data.get("symbol", {})
-    symbol_str = symbol.get("symbol", "") if isinstance(symbol, dict) else str(symbol) if symbol else None
+    symbol_str = (
+        symbol.get("symbol", "")
+        if isinstance(symbol, dict)
+        else str(symbol)
+        if symbol
+        else None
+    )
 
     # Extract option data
     option_data = extract_option_data(data)
 
     # Update basic fields
     transaction.symbol = symbol_str
-    transaction.trade_date = parse_date(data.get("trade_date"))
+    transaction.trade_date = parse_date(data.get("trade_date"))  # type: ignore[assignment]
     transaction.settlement_date = parse_date(data.get("settlement_date"))
     transaction.type = data.get("type", "UNKNOWN")
     transaction.quantity = to_decimal(data.get("units"))

@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from app.models import Account, TradeGroup, Transaction
+from app.models import Account, Transaction
 from app.services import trade_group_service
 
 

@@ -17,7 +17,7 @@ def get_favorite_filter(db: Session, page: str) -> SavedFilter | None:
     """Get the favorite filter for a page (if any)."""
     return (
         db.query(SavedFilter)
-        .filter(SavedFilter.page == page, SavedFilter.is_favorite == True)
+        .filter(SavedFilter.page == page, SavedFilter.is_favorite)
         .first()
     )
 
@@ -34,7 +34,7 @@ def create_filter(
     # If setting as favorite, clear existing favorite for this page
     if is_favorite:
         db.query(SavedFilter).filter(
-            SavedFilter.page == page, SavedFilter.is_favorite == True
+            SavedFilter.page == page, SavedFilter.is_favorite
         ).update({SavedFilter.is_favorite: False})
 
     saved_filter = SavedFilter(
@@ -57,7 +57,7 @@ def set_favorite(db: Session, filter_id: int) -> SavedFilter | None:
 
     # Clear existing favorite for this page
     db.query(SavedFilter).filter(
-        SavedFilter.page == saved_filter.page, SavedFilter.is_favorite == True
+        SavedFilter.page == saved_filter.page, SavedFilter.is_favorite
     ).update({SavedFilter.is_favorite: False})
 
     # Set this one as favorite

@@ -84,7 +84,9 @@ def add_tag_to_transaction(
     )
 
 
-@router.delete("/transaction/{transaction_id}/remove/{tag_id}", response_class=HTMLResponse)
+@router.delete(
+    "/transaction/{transaction_id}/remove/{tag_id}", response_class=HTMLResponse
+)
 def remove_tag_from_transaction(
     request: Request,
     transaction_id: int,

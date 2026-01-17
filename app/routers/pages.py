@@ -38,14 +38,19 @@ def index(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
             portfolio_totals["daily_change"] += totals["daily_change"]
             has_daily_data = True
             # Approximate previous value for portfolio-level percent calculation
-            if totals["daily_change_percent"] is not None and totals["market_value"] > 0:
+            if (
+                totals["daily_change_percent"] is not None
+                and totals["market_value"] > 0
+            ):
                 prev = totals["market_value"] - totals["daily_change"]
                 total_previous_value += prev
 
     if has_daily_data and total_previous_value > 0:
-        portfolio_totals["daily_change_percent"] = (
-            portfolio_totals["daily_change"] / total_previous_value * 100
-        )
+        daily_change = portfolio_totals["daily_change"]
+        if daily_change is not None:
+            portfolio_totals["daily_change_percent"] = (
+                daily_change / total_previous_value * 100
+            )
 
     return templates.TemplateResponse(
         request=request,

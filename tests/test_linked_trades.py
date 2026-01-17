@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models import Account, Base, LinkedTrade, LinkedTradeLeg, Transaction
+from app.models import Account, Base, Transaction
 from app.services import linked_trade_service
 from app.services.linked_trade_service import ContractKey
 
@@ -80,20 +80,32 @@ class TestFIFOSimpleMatch:
         """Open 5 contracts, close 5 - should create 1 linked trade."""
         # Create transactions
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="BUY_TO_OPEN", quantity=Decimal("5"),
-            price=Decimal("2.00"), amount=Decimal("-1000"),
-            trade_date=date(2025, 1, 15), txn_id=1,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="BUY_TO_OPEN",
+            quantity=Decimal("5"),
+            price=Decimal("2.00"),
+            amount=Decimal("-1000"),
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
         )
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="SELL_TO_CLOSE", quantity=Decimal("-5"),
-            price=Decimal("3.00"), amount=Decimal("1500"),
-            trade_date=date(2025, 2, 15), txn_id=2,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="SELL_TO_CLOSE",
+            quantity=Decimal("-5"),
+            price=Decimal("3.00"),
+            amount=Decimal("1500"),
+            trade_date=date(2025, 2, 15),
+            txn_id=2,
         )
 
         # Run matching
@@ -111,7 +123,7 @@ class TestFIFOSimpleMatch:
         assert len(linked_trades) == 1
         lt = linked_trades[0]
         assert lt.direction == "LONG"
-        assert lt.is_closed == True
+        assert lt.is_closed
         assert lt.total_opened_quantity == Decimal("5")
         assert lt.total_closed_quantity == Decimal("5")
         assert len(lt.legs) == 2
@@ -123,28 +135,46 @@ class TestFIFOPartialClose:
     def test_open_5_close_3_close_2(self, db_session, account):
         """Open 5, close 3, close 2 later - should create 1 linked trade with 3 legs."""
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="BUY_TO_OPEN", quantity=Decimal("5"),
-            price=Decimal("2.00"), amount=Decimal("-1000"),
-            trade_date=date(2025, 1, 15), txn_id=1,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="BUY_TO_OPEN",
+            quantity=Decimal("5"),
+            price=Decimal("2.00"),
+            amount=Decimal("-1000"),
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
         )
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="SELL_TO_CLOSE", quantity=Decimal("-3"),
-            price=Decimal("3.00"), amount=Decimal("900"),
-            trade_date=date(2025, 2, 10), txn_id=2,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="SELL_TO_CLOSE",
+            quantity=Decimal("-3"),
+            price=Decimal("3.00"),
+            amount=Decimal("900"),
+            trade_date=date(2025, 2, 10),
+            txn_id=2,
         )
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="SELL_TO_CLOSE", quantity=Decimal("-2"),
-            price=Decimal("2.50"), amount=Decimal("500"),
-            trade_date=date(2025, 2, 15), txn_id=3,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="SELL_TO_CLOSE",
+            quantity=Decimal("-2"),
+            price=Decimal("2.50"),
+            amount=Decimal("500"),
+            trade_date=date(2025, 2, 15),
+            txn_id=3,
         )
 
         contract = ContractKey(
@@ -159,7 +189,7 @@ class TestFIFOPartialClose:
 
         assert len(linked_trades) == 1
         lt = linked_trades[0]
-        assert lt.is_closed == True
+        assert lt.is_closed
         assert lt.total_opened_quantity == Decimal("5")
         assert lt.total_closed_quantity == Decimal("5")
         assert len(lt.legs) == 3  # 1 open + 2 closes
@@ -172,30 +202,48 @@ class TestFIFOMultipleOpens:
         """Open 3 day 1, open 2 day 2, close 5 - FIFO should use day 1 first."""
         # Day 1: Open 3 @ $2.00
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="BUY_TO_OPEN", quantity=Decimal("3"),
-            price=Decimal("2.00"), amount=Decimal("-600"),
-            trade_date=date(2025, 1, 10), txn_id=1,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="BUY_TO_OPEN",
+            quantity=Decimal("3"),
+            price=Decimal("2.00"),
+            amount=Decimal("-600"),
+            trade_date=date(2025, 1, 10),
+            txn_id=1,
         )
         # Day 2: Open 2 @ $2.50
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="BUY_TO_OPEN", quantity=Decimal("2"),
-            price=Decimal("2.50"), amount=Decimal("-500"),
-            trade_date=date(2025, 1, 15), txn_id=2,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="BUY_TO_OPEN",
+            quantity=Decimal("2"),
+            price=Decimal("2.50"),
+            amount=Decimal("-500"),
+            trade_date=date(2025, 1, 15),
+            txn_id=2,
         )
         # Day 3: Close 5 @ $3.00
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="SELL_TO_CLOSE", quantity=Decimal("-5"),
-            price=Decimal("3.00"), amount=Decimal("1500"),
-            trade_date=date(2025, 2, 15), txn_id=3,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="SELL_TO_CLOSE",
+            quantity=Decimal("-5"),
+            price=Decimal("3.00"),
+            amount=Decimal("1500"),
+            trade_date=date(2025, 2, 15),
+            txn_id=3,
         )
 
         contract = ContractKey(
@@ -210,7 +258,7 @@ class TestFIFOMultipleOpens:
 
         assert len(linked_trades) == 1
         lt = linked_trades[0]
-        assert lt.is_closed == True
+        assert lt.is_closed
         # Should have 3 legs: 2 opens + 1 close
         assert len(lt.legs) == 3
 
@@ -221,20 +269,32 @@ class TestShortPosition:
     def test_short_position(self, db_session, account):
         """Sell to open, buy to close - should create SHORT direction."""
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="PUT",
-            strike=Decimal("140"), expiration=date(2025, 3, 21),
-            action="SELL_TO_OPEN", quantity=Decimal("-5"),
-            price=Decimal("3.00"), amount=Decimal("1500"),  # Receive premium
-            trade_date=date(2025, 1, 15), txn_id=1,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="PUT",
+            strike=Decimal("140"),
+            expiration=date(2025, 3, 21),
+            action="SELL_TO_OPEN",
+            quantity=Decimal("-5"),
+            price=Decimal("3.00"),
+            amount=Decimal("1500"),  # Receive premium
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
         )
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="PUT",
-            strike=Decimal("140"), expiration=date(2025, 3, 21),
-            action="BUY_TO_CLOSE", quantity=Decimal("5"),
-            price=Decimal("2.00"), amount=Decimal("-1000"),  # Pay to close
-            trade_date=date(2025, 2, 15), txn_id=2,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="PUT",
+            strike=Decimal("140"),
+            expiration=date(2025, 3, 21),
+            action="BUY_TO_CLOSE",
+            quantity=Decimal("5"),
+            price=Decimal("2.00"),
+            amount=Decimal("-1000"),  # Pay to close
+            trade_date=date(2025, 2, 15),
+            txn_id=2,
         )
 
         contract = ContractKey(
@@ -250,7 +310,7 @@ class TestShortPosition:
         assert len(linked_trades) == 1
         lt = linked_trades[0]
         assert lt.direction == "SHORT"
-        assert lt.is_closed == True
+        assert lt.is_closed
 
 
 class TestCrossAccountNoMatch:
@@ -270,12 +330,18 @@ class TestCrossAccountNoMatch:
 
         # Open in account 1
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="BUY_TO_OPEN", quantity=Decimal("5"),
-            price=Decimal("2.00"), amount=Decimal("-1000"),
-            trade_date=date(2025, 1, 15), txn_id=1,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="BUY_TO_OPEN",
+            quantity=Decimal("5"),
+            price=Decimal("2.00"),
+            amount=Decimal("-1000"),
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
         )
         # Close in account 2 (should NOT match)
         txn2 = Transaction(
@@ -310,7 +376,7 @@ class TestCrossAccountNoMatch:
 
         # Should create 1 linked trade that's NOT closed (no matching close in account 1)
         assert len(linked_trades) == 1
-        assert linked_trades[0].is_closed == False
+        assert not linked_trades[0].is_closed
 
 
 class TestPLCalculation:
@@ -320,20 +386,32 @@ class TestPLCalculation:
         """Test P/L calculation for profitable trade."""
         # Buy @ $2.00, sell @ $3.00 = $100 profit per contract
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="BUY_TO_OPEN", quantity=Decimal("1"),
-            price=Decimal("2.00"), amount=Decimal("-200"),
-            trade_date=date(2025, 1, 15), txn_id=1,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="BUY_TO_OPEN",
+            quantity=Decimal("1"),
+            price=Decimal("2.00"),
+            amount=Decimal("-200"),
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
         )
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="SELL_TO_CLOSE", quantity=Decimal("-1"),
-            price=Decimal("3.00"), amount=Decimal("300"),
-            trade_date=date(2025, 2, 15), txn_id=2,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="SELL_TO_CLOSE",
+            quantity=Decimal("-1"),
+            price=Decimal("3.00"),
+            amount=Decimal("300"),
+            trade_date=date(2025, 2, 15),
+            txn_id=2,
         )
 
         contract = ContractKey(
@@ -347,7 +425,9 @@ class TestPLCalculation:
         db_session.commit()
 
         # Calculate P/L
-        pl = linked_trade_service.calculate_linked_trade_pl(db_session, linked_trades[0].id)
+        pl = linked_trade_service.calculate_linked_trade_pl(
+            db_session, linked_trades[0].id
+        )
 
         # Should be profit: -200 + 300 = 100
         assert pl == Decimal("100")
@@ -359,12 +439,18 @@ class TestOrphanHandling:
     def test_open_without_close(self, db_session, account):
         """Open position without close should remain open."""
         create_option_transaction(
-            db_session, account,
-            underlying="AAPL", option_type="CALL",
-            strike=Decimal("150"), expiration=date(2025, 3, 21),
-            action="BUY_TO_OPEN", quantity=Decimal("5"),
-            price=Decimal("2.00"), amount=Decimal("-1000"),
-            trade_date=date(2025, 1, 15), txn_id=1,
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="BUY_TO_OPEN",
+            quantity=Decimal("5"),
+            price=Decimal("2.00"),
+            amount=Decimal("-1000"),
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
         )
 
         contract = ContractKey(
@@ -379,6 +465,6 @@ class TestOrphanHandling:
 
         assert len(linked_trades) == 1
         lt = linked_trades[0]
-        assert lt.is_closed == False
+        assert not lt.is_closed
         assert lt.total_opened_quantity == Decimal("5")
         assert lt.total_closed_quantity == Decimal("0")

@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.models import Account, Tag, Transaction
+from app.models import Account, Transaction
 from app.services import tag_service
 
 

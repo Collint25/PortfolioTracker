@@ -12,12 +12,8 @@ if TYPE_CHECKING:
 trade_group_transactions = Table(
     "trade_group_transactions",
     Base.metadata,
-    Column(
-        "trade_group_id", Integer, ForeignKey("trade_groups.id"), primary_key=True
-    ),
-    Column(
-        "transaction_id", Integer, ForeignKey("transactions.id"), primary_key=True
-    ),
+    Column("trade_group_id", Integer, ForeignKey("trade_groups.id"), primary_key=True),
+    Column("transaction_id", Integer, ForeignKey("transactions.id"), primary_key=True),
 )
 
 

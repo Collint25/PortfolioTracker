@@ -15,7 +15,9 @@ class Comment(Base, TimestampMixin):
     __tablename__ = "comments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), index=True)
+    transaction_id: Mapped[int] = mapped_column(
+        ForeignKey("transactions.id"), index=True
+    )
     text: Mapped[str] = mapped_column(Text)
 
     # Relationships

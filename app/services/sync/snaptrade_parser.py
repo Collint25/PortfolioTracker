@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 
-def to_decimal(value) -> Decimal | None:
+def to_decimal(value: float | int | str | None) -> Decimal | None:
     """Convert value to Decimal, handling None."""
     if value is None:
         return None
@@ -44,7 +44,8 @@ def extract_symbol(data: dict) -> str:
     if isinstance(symbol, dict):
         inner = symbol.get("symbol", {})
         if isinstance(inner, dict):
-            return inner.get("symbol", "")
+            result = inner.get("symbol", "")
+            return str(result) if result else ""
         if isinstance(inner, str):
             return inner
         return ""
@@ -87,7 +88,9 @@ def extract_option_data(data: dict) -> dict:
 
     # Get underlying symbol
     underlying = option_symbol.get("underlying_symbol", {})
-    underlying_symbol = underlying.get("symbol") if isinstance(underlying, dict) else None
+    underlying_symbol = (
+        underlying.get("symbol") if isinstance(underlying, dict) else None
+    )
 
     return {
         "is_option": True,
@@ -115,7 +118,9 @@ def extract_holding_option_data(data: dict) -> dict:
     - underlying_symbol: str | None
     """
     symbol_data = data.get("symbol", {})
-    option_symbol = symbol_data.get("option_symbol", {}) if isinstance(symbol_data, dict) else {}
+    option_symbol = (
+        symbol_data.get("option_symbol", {}) if isinstance(symbol_data, dict) else {}
+    )
 
     if not option_symbol:
         return {
@@ -133,7 +138,9 @@ def extract_holding_option_data(data: dict) -> dict:
     expiration_date = parse_date(option_symbol.get("expiration_date"))
 
     underlying = option_symbol.get("underlying_symbol", {})
-    underlying_symbol = underlying.get("symbol") if isinstance(underlying, dict) else None
+    underlying_symbol = (
+        underlying.get("symbol") if isinstance(underlying, dict) else None
+    )
 
     return {
         "is_option": True,
@@ -149,5 +156,6 @@ def extract_currency(data: dict) -> str:
     """Extract currency code from response, defaulting to USD."""
     currency_data = data.get("currency")
     if isinstance(currency_data, dict):
-        return currency_data.get("code", "USD")
+        code = currency_data.get("code", "USD")
+        return str(code) if code else "USD"
     return "USD"

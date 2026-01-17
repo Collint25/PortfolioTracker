@@ -86,7 +86,6 @@ Third-party APIs providing financial data and brokerage connections.
 **Related Classes/Methods**:
 
 - <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/services/snaptrade_client.py#L6-L12" target="_blank" rel="noopener noreferrer">`SnapTrade API`:6-12</a>
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/docs/YAHOO_FINANCE_INTEGRATION.md" target="_blank" rel="noopener noreferrer">`Yahoo Finance`</a>
 
 
 ### Unclassified

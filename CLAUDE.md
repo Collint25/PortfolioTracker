@@ -2,10 +2,6 @@
 
 Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 
-> **Note:** Keep project status updated as features are completed:
-> - **This file (CLAUDE.md):** Update the Project Status section with high-level progress
-> - **docs/PROJECT_PLAN.md:** Update with granular deliverables and acceptance criteria per phase
-
 ## Stack
 - Backend: FastAPI + SQLAlchemy + SQLite
 - Frontend: Jinja2 + HTMX + Tailwind/DaisyUI
@@ -16,6 +12,15 @@ Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 - `uv run pytest` - run tests
 - `uv run alembic upgrade head` - run migrations
 
+## Git workflow
+GitHub Flow: feature branch → PR → main
+
+- Branch from main: `git checkout -b feature/<name>`
+- Push + open PR (auto-reviewed by Claude)
+- Merge PR, delete branch
+- Never push directly to main
+- Branch naming: `feature/thing`, `fix/bug`
+
 ## Structure
 - app/models/ - SQLAlchemy models
 - app/services/ - business logic (keep thin, focused functions)
@@ -24,7 +29,7 @@ Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 - tests/ - pytest tests
 
 ## Code style
-- Small functions (<40 lines)
+- Small functions
 - Type hints on all signatures
 - Services handle logic, routes handle HTTP
 - Config values in app/config.py not hardcoded
@@ -60,35 +65,3 @@ SnapTrade API → sync service → SQLite → services → routes → HTMX parti
 - Rate limit: 250 req/min
 - Transactions paginate at 1000/request
 - Auth: user_id + user_secret per connection
-
-## Project Status
-
-### Completed
-- [x] Project scaffold (models, routers, services, templates)
-- [x] Database layer (SQLAlchemy + Alembic)
-- [x] Base UI (DaisyUI + HTMX)
-- [x] Initial migration + dependency install
-- [x] Tests passing
-- [x] SnapTrade client wrapper
-- [x] Full sync service (accounts, positions, transactions)
-- [x] Manual sync button with status display
-- [x] Transaction list with filters, search, sort, pagination
-- [x] Transaction detail page with related trades
-- [x] Tags & comments system (create tags with colors, assign to transactions, filter by tag, inline editing)
-- [x] Trade groups (multi-leg strategies with auto-grouping, combined P/L)
-- [x] Logging configuration (stdout with formatted output)
-- [x] SnapTrade API update (per-account endpoint, no deprecation warnings)
-- [x] Positions view (market value, cost basis, gain/loss with percentages)
-- [x] Option support (option type, strike, expiration, action type; filters for CALL/PUT/action)
-- [x] Linked trades (FIFO matching for option open/close pairs, P/L calculation, manual override)
-- [x] Account cards with market value and daily G/L (Phase 9)
-- [x] Dashboard enhancement with expandable positions (Phase 9.1)
-- [x] Filter consolidation with collapsible sections (Phase 9.2)
-- [x] Saved filters with favorites (Phase 9.3)
-- [x] Transaction table refactor - URL construction moved to router (Phase 9.4)
-
-### Backlog
-- [ ] Manual Transactions (Phase 10)
-- [ ] Metrics & Dashboard (Phase 11)
-- [ ] Position detail views
-- [ ] Daily sync cron job (APScheduler)

@@ -1,8 +1,31 @@
 {
     "recommendations": [
+        // Python essentials (already installed)
         "charliermarsh.ruff",
         "ms-python.mypy-type-checker",
         "ms-python.python",
-        "ms-python.vscode-pylance"
+        "ms-python.vscode-pylance",
+        // HTMX & Jinja2 templates
+        "otovo-oss.htmx-tags", // HTMX attribute autocomplete
+        "samuelcolvin.jinjahtml", // Jinja2 syntax highlighting
+        // Database tools
+        "qwtel.sqlite-viewer", // Browse SQLite DB in VS Code
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-sqlite",
+        // Error visibility (HIGHLY RECOMMENDED)
+        "usernamehw.errorlens", // Shows errors inline - game changer for Python
+        // Git superpowers
+        "eamodio.gitlens", // Git blame, history, etc
+        "mhutchie.git-graph", // Visual branch graph
+        // Productivity
+        "alefragnani.bookmarks", // Bookmark lines of code
+        "gruntfuggly.todo-tree", // Find all TODOs in codebase
+        "wayou.vscode-todo-highlight", // Highlight TODO/FIXME
+        // Quality of life
+        "aaron-bond.better-comments", // Color-coded comment types
+        "streetsidesoftware.code-spell-checker", // Catch typos
+        "naumovs.color-highlight", // Show color previews
+        "PKief.material-icon-theme", // Better file icons
+        "oderwat.indent-rainbow" // Colorize indentation levels
     ]
 }

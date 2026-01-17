@@ -1,32 +1,109 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero min-h-[40vh]">
-    <div class="hero-content text-center">
-        <div class="max-w-md">
-            <h1 class="text-5xl font-bold">Portfolio Tracker</h1>
-            <p class="py-6">Track your Fidelity investments synced via SnapTrade.</p>
-            <div class="flex gap-4 justify-center">
-                <a href="/accounts" class="btn btn-primary">View Accounts</a>
-                <button
-                    class="btn btn-secondary"
-                    hx-post="/sync/"
-                    hx-target="#sync-result"
-                    hx-indicator="#sync-spinner"
-                >
-                    <span id="sync-spinner" class="loading loading-spinner loading-sm htmx-indicator"></span>
-                    Sync Now
-                </button>
-            </div>
+<!-- Portfolio Summary -->
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+    <div>
+        <h1 class="text-3xl font-bold">Portfolio</h1>
+        <div class="flex items-center gap-2 mt-1">
+            <span class="text-2xl font-semibold">${{ "{:,.2f}".format(portfolio_totals.market_value) }}</span>
+            {% if portfolio_totals.daily_change is not none %}
+            <span class="{{ 'text-success' if portfolio_totals.daily_change >= 0 else 'text-error' }} font-medium">
+                {{ "+" if portfolio_totals.daily_change >= 0 else "" }}${{ "{:,.2f}".format(portfolio_totals.daily_change) }}
+            </span>
+            {% if portfolio_totals.daily_change_percent is not none %}
+            <span class="{{ 'text-success' if portfolio_totals.daily_change_percent >= 0 else 'text-error' }} text-sm">
+                ({{ "+" if portfolio_totals.daily_change_percent >= 0 else "" }}{{ "{:.2f}".format(portfolio_totals.daily_change_percent) }}%)
+            </span>
+            {% endif %}
+            <span class="text-xs text-base-content/50">today</span>
+            {% endif %}
         </div>
+    </div>
+    <div class="flex gap-2">
+        <button
+            class="btn btn-primary"
+            hx-post="/sync/"
+            hx-target="#sync-result"
+            hx-indicator="#sync-spinner"
+        >
+            <span id="sync-spinner" class="loading loading-spinner loading-sm htmx-indicator"></span>
+            Sync Now
+        </button>
     </div>
 </div>
 
-<div id="sync-result" class="max-w-md mx-auto mt-4"></div>
+<div id="sync-result" class="mb-4"></div>
 
-<div class="stats shadow mx-auto mt-8" hx-get="/sync/status" hx-trigger="load, syncComplete from:body" hx-swap="innerHTML">
-    <div class="stat">
-        <div class="stat-title">Loading...</div>
+<!-- Account Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for item in accounts %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h2 class="card-title text-lg">{{ item.account.name }}</h2>
+                    <p class="text-sm text-base-content/70">{{ item.account.account_number }}</p>
+                </div>
+                {% if item.account.account_type %}
+                <div class="badge badge-outline badge-sm">{{ item.account.account_type }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Market Value -->
+            <div class="mt-3">
+                <div class="text-2xl font-bold">
+                    ${{ "{:,.2f}".format(item.totals.market_value) }}
+                </div>
+                {% if item.totals.daily_change is not none %}
+                <div class="flex items-center gap-2">
+                    <span class="{{ 'text-success' if item.totals.daily_change >= 0 else 'text-error' }} font-medium text-sm">
+                        {{ "+" if item.totals.daily_change >= 0 else "" }}${{ "{:,.2f}".format(item.totals.daily_change) }}
+                    </span>
+                    {% if item.totals.daily_change_percent is not none %}
+                    <span class="{{ 'text-success' if item.totals.daily_change_percent >= 0 else 'text-error' }} text-xs">
+                        ({{ "+" if item.totals.daily_change_percent >= 0 else "" }}{{ "{:.2f}".format(item.totals.daily_change_percent) }}%)
+                    </span>
+                    {% endif %}
+                    <span class="text-xs text-base-content/50">today</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Expand/Collapse Button -->
+            <div class="card-actions justify-between items-center mt-3">
+                <button
+                    class="btn btn-ghost btn-sm gap-1"
+                    hx-get="/accounts/{{ item.account.id }}/positions-inline"
+                    hx-target="#positions-{{ item.account.id }}"
+                    hx-swap="innerHTML"
+                    onclick="this.querySelector('svg').classList.toggle('rotate-180')"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    Positions
+                </button>
+                <a href="/accounts/{{ item.account.id }}/positions" class="btn btn-sm btn-primary">
+                    Details
+                </a>
+            </div>
+
+            <!-- Expandable Positions Area -->
+            <div id="positions-{{ item.account.id }}" class="mt-2"></div>
+        </div>
     </div>
+    {% else %}
+    <div class="col-span-full">
+        <div class="alert alert-info">
+            <span>No accounts found. Click "Sync Now" to fetch your accounts from SnapTrade.</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Sync Status -->
+<div class="mt-8" hx-get="/sync/status" hx-trigger="load, syncComplete from:body" hx-swap="innerHTML">
+    <div class="text-sm text-base-content/50">Loading sync status...</div>
 </div>
 {% endblock %}

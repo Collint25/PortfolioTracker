@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.logging_config import configure_logging
-from app.routers import accounts, comments, linked_trades, pages, sync, tags, trade_groups, transactions
+from app.routers import accounts, comments, linked_trades, pages, saved_filters, sync, tags, trade_groups, transactions
 
 # Configure logging at startup
 configure_logging()
@@ -22,6 +22,7 @@ app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(comments.router, prefix="/comments", tags=["comments"])
 app.include_router(trade_groups.router, prefix="/trade-groups", tags=["trade-groups"])
 app.include_router(linked_trades.router, prefix="/linked-trades", tags=["linked-trades"])
+app.include_router(saved_filters.router, prefix="/saved-filters", tags=["saved-filters"])
 
 
 @app.get("/health")

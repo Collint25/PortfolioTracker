@@ -192,19 +192,30 @@ For each unique contract:
 
 ## Phase 9.1: Dashboard Enhancement
 
-**Files to modify:**
-- `app/templates/index.html` - Dashboard redesign
-- `app/templates/partials/account_card.html` - Add expandable parameter
-- `app/routers/pages.py` - Fetch accounts, add inline positions route
+**Files created:**
+- `app/templates/partials/position_list_compact.html` - Compact position table for inline expansion
+
+**Files modified:**
+- `app/routers/pages.py` - Added `get_all_accounts_with_totals()`, portfolio totals calculation, `/accounts/{id}/positions-inline` route
+- `app/templates/index.html` - Replaced hero section with account cards grid, portfolio summary, expandable positions
+
+**Key changes:**
+- Account cards display market value and daily G/L with % change
+- Portfolio-wide totals at top of page
+- Click "Positions" to expand inline position table via HTMX
+- "Details" button links to full positions page
 
 ---
 
 ## Phase 9.2: Filter Consolidation
 
-**Files to modify:**
-- `app/templates/transactions.html` - Filter UI redesign
-- `app/routers/transactions.py` - Build filter query string
-- `app/templates/partials/transaction_table.html` - Use filter_query_string
+**Files modified:**
+- `app/templates/transactions.html` - Reorganized filter UI with:
+  - Compact horizontal layout with flex-wrap
+  - Primary filters always visible (search, account, symbol, type, dates)
+  - "More" button to toggle advanced filters
+  - Advanced section with options group (is_option, call/put, action) and tags
+  - "Clear All" link to reset filters
 
 ---
 
@@ -212,26 +223,41 @@ For each unique contract:
 
 **SavedFilter Model:**
 ```
-id, name, filter_json, is_favorite, page
+id, name, page, filter_json (stores query string), is_favorite
 ```
 
-**Files to create:**
-- `app/models/saved_filter.py`
-- `app/routers/saved_filters.py`
-- `alembic/versions/xxxx_add_saved_filters.py`
+**Files created:**
+- `app/models/saved_filter.py` - SavedFilter SQLAlchemy model
+- `app/services/saved_filter_service.py` - CRUD operations, favorite toggle
+- `app/routers/saved_filters.py` - API endpoints for saved filters
+- `app/templates/partials/saved_filter_list.html` - Saved filter badges UI
+- `alembic/versions/5990bd38093f_add_saved_filters.py` - Migration
 
-**Files to modify:**
+**Files modified:**
 - `app/models/__init__.py` - Export SavedFilter
-- `app/main.py` - Register router
-- `app/templates/transactions.html` - Save/load filter UI
+- `app/main.py` - Register saved_filters router
+- `app/templates/transactions.html` - Added saved filters section with save modal
+- `app/routers/transactions.py` - Added saved_filters to context
+
+**Key features:**
+- Save current filter combination with custom name
+- Set one filter as "favorite" per page
+- Quick apply by clicking saved filter badge
+- Delete saved filters with confirmation
 
 ---
 
 ## Phase 9.4: Transaction Table Refactor
 
-**Files to modify:**
-- `app/routers/transactions.py` - Build filter_query_string
-- `app/templates/partials/transaction_table.html` - Use variable instead of inline construction
+**Files modified:**
+- `app/routers/transactions.py` - Added `build_filter_query_string()` helper function
+- `app/templates/partials/transaction_table.html` - Uses `filter_query_string` instead of building inline
+
+**Key changes:**
+- URL query string construction moved from template to router
+- Template receives single `filter_query_string` variable
+- Cleaner, more maintainable template code
+- Sort and pagination links use the pre-built query string
 
 ---
 

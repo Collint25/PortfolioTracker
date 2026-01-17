@@ -82,12 +82,10 @@ SnapTrade API → sync service → SQLite → services → routes → HTMX parti
 - [x] Option support (option type, strike, expiration, action type; filters for CALL/PUT/action)
 - [x] Linked trades (FIFO matching for option open/close pairs, P/L calculation, manual override)
 - [x] Account cards with market value and daily G/L (Phase 9)
-
-### In Progress
-- [ ] Dashboard enhancement with expandable positions (Phase 9.1)
-- [ ] Filter consolidation and grouping (Phase 9.2)
-- [ ] Saved filters with favorites (Phase 9.3)
-- [ ] Transaction table refactor (Phase 9.4)
+- [x] Dashboard enhancement with expandable positions (Phase 9.1)
+- [x] Filter consolidation with collapsible sections (Phase 9.2)
+- [x] Saved filters with favorites (Phase 9.3)
+- [x] Transaction table refactor - URL construction moved to router (Phase 9.4)
 
 ### Backlog
 - [ ] Manual Transactions (Phase 10)

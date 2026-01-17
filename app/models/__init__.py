@@ -8,6 +8,7 @@ from app.models.comment import Comment
 from app.models.trade_group import TradeGroup, trade_group_transactions
 from app.models.linked_trade import LinkedTrade
 from app.models.linked_trade_leg import LinkedTradeLeg
+from app.models.saved_filter import SavedFilter
 
 __all__ = [
     "Base",
@@ -20,6 +21,7 @@ __all__ = [
     "TradeGroup",
     "LinkedTrade",
     "LinkedTradeLeg",
+    "SavedFilter",
     "transaction_tags",
     "trade_group_transactions",
 ]

@@ -19,10 +19,10 @@
 | 8.1 | Linked Trades - FIFO Matching | ✅ |
 | 8.2 | Linked Trades - API & UI | ✅ |
 | 9 | Account Cards with Market Value | ✅ |
-| 9.1 | Dashboard Enhancement | ⬜ |
-| 9.2 | Filter Consolidation | ⬜ |
-| 9.3 | Saved Filters | ⬜ |
-| 9.4 | Transaction Table Refactor | ⬜ |
+| 9.1 | Dashboard Enhancement | ✅ |
+| 9.2 | Filter Consolidation | ✅ |
+| 9.3 | Saved Filters | ✅ |
+| 9.4 | Transaction Table Refactor | ✅ |
 | 10 | Manual Transactions | ⬜ |
 | 11 | Metrics & Dashboard | ⬜ |
 
@@ -54,19 +54,46 @@ Added `previous_close` column to positions, capture from Finnhub `pc` field. Acc
 
 ---
 
-## In Progress
+### Phase 9.1-9.4: UI/UX Improvements (Completed)
 
-### Phase 9.1: Dashboard Enhancement
-Replace hero section with account cards grid, expandable positions on click.
+**9.1: Dashboard Enhancement**
+- Replaced hero section with account cards grid showing market value and daily G/L
+- Added expandable positions via HTMX with compact table view
+- Portfolio-wide totals displayed at top
 
-### Phase 9.2: Filter Consolidation
-Group stock/option filters, collapsible section, reduced vertical space.
+**9.2: Filter Consolidation**
+- Reorganized filters into compact horizontal layout
+- Primary filters (search, account, symbol, type, dates) always visible
+- Advanced filters (options, tags) in collapsible section
+- "Clear All" link for easy reset
 
-### Phase 9.3: Saved Filters
-Save filter combinations with names, set favorite for auto-apply on page load.
+**9.3: Saved Filters**
+- SavedFilter model with name, page, query_string, is_favorite
+- Save current filters with custom name
+- Favorite filter can auto-apply on page load (future)
+- Quick access via badge-style chips
 
-### Phase 9.4: Transaction Table Refactor
-Move URL construction from template to router for cleaner code.
+**9.4: Transaction Table Refactor**
+- Moved URL query string construction from template to router (`build_filter_query_string`)
+- Template now uses single `filter_query_string` variable
+- Cleaner, more maintainable template code
+
+**Files created:**
+- `app/models/saved_filter.py`
+- `app/services/saved_filter_service.py`
+- `app/routers/saved_filters.py`
+- `app/templates/partials/saved_filter_list.html`
+- `app/templates/partials/position_list_compact.html`
+- `alembic/versions/5990bd38093f_add_saved_filters.py`
+
+**Files modified:**
+- `app/routers/pages.py` - Added accounts_with_totals, portfolio_totals, positions-inline route
+- `app/routers/transactions.py` - Added build_filter_query_string, saved_filters
+- `app/templates/index.html` - Account cards grid with expandable positions
+- `app/templates/transactions.html` - Consolidated filters, saved filters UI
+- `app/templates/partials/transaction_table.html` - Uses filter_query_string
+- `app/main.py` - Registered saved_filters router
+- `app/models/__init__.py` - Export SavedFilter
 
 ---
 

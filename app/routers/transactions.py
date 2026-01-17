@@ -1,14 +1,59 @@
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services import account_service, tag_service, transaction_service
+from app.services import account_service, saved_filter_service, tag_service, transaction_service
 from app.utils.query_params import parse_int_param, parse_bool_param, parse_date_param
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+
+def build_filter_query_string(
+    search: str | None,
+    account_id: int | None,
+    symbol: str | None,
+    type: str | None,
+    tag_id: int | None,
+    start_date: str | None,
+    end_date: str | None,
+    is_option: str | None,
+    option_type: str | None,
+    option_action: str | None,
+    sort_by: str,
+    sort_dir: str,
+) -> str:
+    """Build a URL query string from filter parameters."""
+    params = {}
+    if search:
+        params["search"] = search
+    if account_id:
+        params["account_id"] = account_id
+    if symbol:
+        params["symbol"] = symbol
+    if type:
+        params["type"] = type
+    if tag_id:
+        params["tag_id"] = tag_id
+    if start_date:
+        params["start_date"] = str(start_date)
+    if end_date:
+        params["end_date"] = str(end_date)
+    if is_option:
+        params["is_option"] = is_option
+    if option_type:
+        params["option_type"] = option_type
+    if option_action:
+        params["option_action"] = option_action
+    if sort_by and sort_by != "trade_date":
+        params["sort_by"] = sort_by
+    if sort_dir and sort_dir != "desc":
+        params["sort_dir"] = sort_dir
+    return urlencode(params)
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -72,6 +117,25 @@ def list_transactions(
     option_types = transaction_service.get_unique_option_types(db)
     option_actions = transaction_service.get_unique_option_actions(db)
 
+    # Build query string for saved filters and table links
+    filter_query_string = build_filter_query_string(
+        search=search_val,
+        account_id=account_id_int,
+        symbol=symbol_val,
+        type=type_val,
+        tag_id=tag_id_int,
+        start_date=start_date,
+        end_date=end_date,
+        is_option=is_option,
+        option_type=option_type_val,
+        option_action=option_action_val,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+
+    # Get saved filters for this page
+    saved_filters = saved_filter_service.get_filters_for_page(db, "transactions")
+
     context = {
         "transactions": transactions,
         "total": total,
@@ -84,6 +148,8 @@ def list_transactions(
         "tags": tags,
         "option_types": option_types,
         "option_actions": option_actions,
+        "saved_filters": saved_filters,
+        "filter_query_string": filter_query_string,
         # Current filter values
         "current_account_id": account_id_int,
         "current_symbol": symbol_val,

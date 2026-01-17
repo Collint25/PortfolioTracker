@@ -1,0 +1,52 @@
+{% if positions %}
+<div class="overflow-x-auto border-t border-base-300 pt-3">
+    <table class="table table-xs">
+        <thead>
+            <tr class="text-xs">
+                <th>Symbol</th>
+                <th class="text-right">Qty</th>
+                <th class="text-right">Price</th>
+                <th class="text-right">Value</th>
+                <th class="text-right">G/L</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in positions %}
+            <tr>
+                <td class="font-medium text-sm">
+                    {{ item.position.underlying_symbol if item.position.is_option else item.position.symbol }}
+                    {% if item.position.is_option %}
+                    <span class="text-xs text-base-content/50">
+                        ${{ '{:.0f}'.format(item.position.strike_price) if item.position.strike_price else '?' }}
+                        <span class="{{ 'text-success' if item.position.option_type == 'CALL' else 'text-error' }}">
+                            {{ 'C' if item.position.option_type == 'CALL' else 'P' }}
+                        </span>
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="text-right text-sm">{{ "{:,.0f}".format(item.position.quantity) }}</td>
+                <td class="text-right text-sm">
+                    {% if item.position.current_price is not none %}
+                    ${{ "{:,.2f}".format(item.position.current_price) }}
+                    {% else %}--{% endif %}
+                </td>
+                <td class="text-right text-sm">
+                    {% if item.market_value is not none %}
+                    ${{ "{:,.0f}".format(item.market_value) }}
+                    {% else %}--{% endif %}
+                </td>
+                <td class="text-right text-sm {{ 'text-success' if item.gain_loss is not none and item.gain_loss >= 0 else 'text-error' if item.gain_loss is not none else '' }}">
+                    {% if item.gain_loss is not none %}
+                    {{ "+" if item.gain_loss >= 0 else "" }}${{ "{:,.0f}".format(item.gain_loss) }}
+                    {% else %}--{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-sm text-base-content/50 border-t border-base-300 pt-3">
+    No positions
+</div>
+{% endif %}

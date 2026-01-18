@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services import account_service, linked_trade_service
+from app.services.filters import LinkedTradeFilter, PaginationParams
 from app.utils.query_params import parse_bool_param
 
 router = APIRouter()
@@ -25,13 +26,16 @@ def list_linked_trades(
     """List all linked trades with filters."""
     closed_filter = parse_bool_param(is_closed)
 
-    linked_trades, total = linked_trade_service.get_all_linked_trades(
-        db,
+    # Build filter and pagination objects
+    filters = LinkedTradeFilter(
         account_id=account_id,
         underlying_symbol=underlying_symbol,
         is_closed=closed_filter,
-        page=page,
-        per_page=50,
+    )
+    pagination = PaginationParams(page=page, per_page=50)
+
+    linked_trades, total = linked_trade_service.get_all_linked_trades(
+        db, filters, pagination
     )
 
     summary = linked_trade_service.get_pl_summary(db, account_id)
@@ -94,9 +98,9 @@ def run_auto_match(
     """Run FIFO auto-matching on all unlinked transactions."""
     result = linked_trade_service.auto_match_all(db, account_id)
 
-    linked_trades, total = linked_trade_service.get_all_linked_trades(
-        db, account_id=account_id
-    )
+    # Build filter object
+    filters = LinkedTradeFilter(account_id=account_id)
+    linked_trades, total = linked_trade_service.get_all_linked_trades(db, filters)
     summary = linked_trade_service.get_pl_summary(db, account_id)
     symbols = linked_trade_service.get_unique_symbols(db)
     accounts = account_service.get_all_accounts(db)

@@ -9,28 +9,32 @@ from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.account import Account
-    from app.models.linked_trade_leg import LinkedTradeLeg
+    from app.models.lot_transaction import LotTransaction
 
 
-class LinkedTrade(Base, TimestampMixin):
-    """Links opening and closing transactions for the same option contract."""
+class TradeLot(Base, TimestampMixin):
+    """Tracks a batch of shares/contracts through open -> close lifecycle."""
 
-    __tablename__ = "linked_trades"
+    __tablename__ = "trade_lots"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), index=True)
 
-    # Option contract identifier
-    underlying_symbol: Mapped[str] = mapped_column(String(20), index=True)
-    option_type: Mapped[str] = mapped_column(String(10))  # CALL, PUT
-    strike_price: Mapped[Decimal] = mapped_column(Numeric(18, 4))
-    expiration_date: Mapped[date] = mapped_column(Date, index=True)
+    # Instrument type
+    instrument_type: Mapped[str] = mapped_column(String(10))  # STOCK, OPTION
 
-    # Trade direction: LONG (BUY_TO_OPEN -> SELL_TO_CLOSE)
-    #                  SHORT (SELL_TO_OPEN -> BUY_TO_CLOSE)
+    # Symbol (ticker for stocks, underlying for options)
+    symbol: Mapped[str] = mapped_column(String(20), index=True)
+
+    # Option-specific (NULL for stocks)
+    option_type: Mapped[str | None] = mapped_column(String(10))  # CALL, PUT
+    strike_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    expiration_date: Mapped[date | None] = mapped_column(Date, index=True)
+
+    # Trade direction: LONG (buy first) or SHORT (sell first)
     direction: Mapped[str] = mapped_column(String(10))
 
-    # Calculated P/L (sum of all leg amounts)
+    # Calculated P/L
     realized_pl: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0"))
 
     # Status tracking
@@ -47,19 +51,21 @@ class LinkedTrade(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text)
 
     # Relationships
-    account: Mapped["Account"] = relationship(back_populates="linked_trades")
-    legs: Mapped[list["LinkedTradeLeg"]] = relationship(
-        back_populates="linked_trade",
+    account: Mapped["Account"] = relationship(back_populates="trade_lots")
+    legs: Mapped[list["LotTransaction"]] = relationship(
+        back_populates="trade_lot",
         cascade="all, delete-orphan",
-        order_by="LinkedTradeLeg.trade_date",
+        order_by="LotTransaction.trade_date",
     )
 
     @property
     def contract_display(self) -> str:
-        """Format contract for display: AAPL $150 01/17 CALL"""
+        """Format contract for display."""
+        if self.instrument_type == "STOCK":
+            return self.symbol
         exp_str = self.expiration_date.strftime("%m/%d") if self.expiration_date else ""
         opt_char = "C" if self.option_type == "CALL" else "P"
-        return f"{self.underlying_symbol} ${self.strike_price:.2f} {exp_str} {opt_char}"
+        return f"{self.symbol} ${self.strike_price:.2f} {exp_str} {opt_char}"
 
     @property
     def remaining_quantity(self) -> Decimal:

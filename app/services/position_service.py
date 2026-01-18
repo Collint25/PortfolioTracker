@@ -1,9 +1,10 @@
-"""Position service for querying and calculating position data."""
+"""Position service for querying and aggregating position data."""
 
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app.calculations import position_calcs
 from app.models import Position
 
 
@@ -17,66 +18,16 @@ def get_positions_by_account(db: Session, account_id: int) -> list[Position]:
     )
 
 
-def calculate_market_value(position: Position) -> Decimal | None:
-    """Calculate market value (quantity * current_price)."""
-    if position.current_price is None:
-        return None
-    return position.quantity * position.current_price
-
-
-def calculate_cost_basis(position: Position) -> Decimal | None:
-    """Calculate total cost basis (quantity * average_cost)."""
-    if position.average_cost is None:
-        return None
-    return position.quantity * position.average_cost
-
-
-def calculate_gain_loss(position: Position) -> Decimal | None:
-    """Calculate unrealized gain/loss (market_value - cost_basis)."""
-    market_value = calculate_market_value(position)
-    cost_basis = calculate_cost_basis(position)
-    if market_value is None or cost_basis is None:
-        return None
-    return market_value - cost_basis
-
-
-def calculate_gain_loss_percent(position: Position) -> Decimal | None:
-    """Calculate unrealized gain/loss as percentage."""
-    gain_loss = calculate_gain_loss(position)
-    cost_basis = calculate_cost_basis(position)
-    if gain_loss is None or cost_basis is None or cost_basis == 0:
-        return None
-    return (gain_loss / cost_basis) * 100
-
-
-def calculate_daily_change(position: Position) -> Decimal | None:
-    """Calculate daily change in $ (current_price - previous_close) * quantity."""
-    if position.current_price is None or position.previous_close is None:
-        return None
-    return (position.current_price - position.previous_close) * position.quantity
-
-
-def calculate_daily_change_percent(position: Position) -> Decimal | None:
-    """Calculate daily change as percentage."""
-    if position.current_price is None or position.previous_close is None:
-        return None
-    if position.previous_close == 0:
-        return None
-    return (
-        (position.current_price - position.previous_close) / position.previous_close
-    ) * 100
-
-
 def get_position_summary(position: Position) -> dict:
     """Get position with calculated fields."""
     return {
         "position": position,
-        "market_value": calculate_market_value(position),
-        "cost_basis": calculate_cost_basis(position),
-        "gain_loss": calculate_gain_loss(position),
-        "gain_loss_percent": calculate_gain_loss_percent(position),
-        "daily_change": calculate_daily_change(position),
-        "daily_change_percent": calculate_daily_change_percent(position),
+        "market_value": position_calcs.market_value(position),
+        "cost_basis": position_calcs.cost_basis(position),
+        "gain_loss": position_calcs.gain_loss(position),
+        "gain_loss_percent": position_calcs.gain_loss_percent(position),
+        "daily_change": position_calcs.daily_change(position),
+        "daily_change_percent": position_calcs.daily_change_percent(position),
     }
 
 

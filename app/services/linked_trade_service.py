@@ -6,6 +6,7 @@ from typing import NamedTuple
 
 from sqlalchemy.orm import Session
 
+from app.calculations import pl_calcs
 from app.models import LinkedTrade, LinkedTradeLeg, Transaction
 from app.services.filters import (
     LinkedTradeFilter,
@@ -430,25 +431,12 @@ def calculate_linked_trade_pl(db: Session, linked_trade_id: int) -> Decimal:
     """
     Calculate realized P/L for a linked trade.
 
-    P/L = sum of all transaction amounts in the linked trade.
-    For options: positive amount = credit (received money), negative = debit (paid money)
+    Loads the trade and delegates to pl_calcs module.
     """
     linked_trade = get_linked_trade_by_id(db, linked_trade_id)
     if not linked_trade:
         return Decimal("0")
-
-    total_pl = Decimal("0")
-    for leg in linked_trade.legs:
-        # Get the transaction's amount (cash impact)
-        txn = leg.transaction
-        if txn and txn.amount:
-            # Proportion the amount based on allocated quantity vs total quantity
-            txn_qty = abs(txn.quantity) if txn.quantity else Decimal("1")
-            if txn_qty > 0:
-                proportion = leg.allocated_quantity / txn_qty
-                total_pl += txn.amount * proportion
-
-    return total_pl
+    return pl_calcs.linked_trade_pl(linked_trade)
 
 
 def recalculate_all_pl(db: Session) -> int:
@@ -476,32 +464,4 @@ def get_pl_summary(db: Session, account_id: int | None = None) -> dict:
     if account_id is not None:
         query = query.filter(LinkedTrade.account_id == account_id)
 
-    linked_trades = query.all()
-
-    total_pl = Decimal("0")
-    winners = 0
-    losers = 0
-    open_count = 0
-    closed_count = 0
-
-    for lt in linked_trades:
-        if lt.is_closed:
-            closed_count += 1
-            total_pl += lt.realized_pl
-            if lt.realized_pl > 0:
-                winners += 1
-            elif lt.realized_pl < 0:
-                losers += 1
-        else:
-            open_count += 1
-
-    win_rate = (winners / closed_count * 100) if closed_count > 0 else 0
-
-    return {
-        "total_pl": total_pl,
-        "winners": winners,
-        "losers": losers,
-        "win_rate": win_rate,
-        "open_count": open_count,
-        "closed_count": closed_count,
-    }
+    return pl_calcs.pl_summary(query.all())

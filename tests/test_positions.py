@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from app.calculations import position_calcs
 from app.models import Account, Position
 from app.services import position_service
 
@@ -83,7 +84,7 @@ def test_calculate_market_value(db_session):
     db_session.add(position)
     db_session.commit()
 
-    market_value = position_service.calculate_market_value(position)
+    market_value = position_calcs.market_value(position)
     assert market_value == Decimal("1200")
 
 
@@ -108,7 +109,7 @@ def test_calculate_gain_loss(db_session):
     db_session.add(position)
     db_session.commit()
 
-    gain_loss = position_service.calculate_gain_loss(position)
+    gain_loss = position_calcs.gain_loss(position)
     # Market value: 10 * 120 = 1200
     # Cost basis: 10 * 100 = 1000
     # Gain: 1200 - 1000 = 200
@@ -136,7 +137,7 @@ def test_calculate_gain_loss_percent(db_session):
     db_session.add(position)
     db_session.commit()
 
-    gain_loss_percent = position_service.calculate_gain_loss_percent(position)
+    gain_loss_percent = position_calcs.gain_loss_percent(position)
     # Gain: 200, Cost basis: 1000, Percent: 20%
     assert gain_loss_percent == Decimal("20")
 

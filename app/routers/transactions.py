@@ -13,6 +13,7 @@ from app.services import (
     transaction_service,
 )
 from app.services.filters import PaginationParams, TransactionFilter
+from app.utils.htmx import htmx_response
 from app.utils.query_params import parse_bool_param, parse_date_param, parse_int_param
 
 router = APIRouter()
@@ -171,17 +172,12 @@ def list_transactions(
         "title": "Transactions",
     }
 
-    # Return partial for HTMX requests
-    if request.headers.get("HX-Request") == "true":
-        return templates.TemplateResponse(
-            request=request,
-            name="partials/transaction_table.html",
-            context=context,
-        )
-
-    return templates.TemplateResponse(
+    # Use helper for HTMX response
+    return htmx_response(
+        templates=templates,
         request=request,
-        name="transactions.html",
+        full_template="transactions.html",
+        partial_template="partials/transaction_table.html",
         context=context,
     )
 

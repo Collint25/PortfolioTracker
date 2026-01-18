@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from starlette.responses import Response
 
 from app.database import get_db
 from app.services import (
@@ -80,7 +81,7 @@ def list_transactions(
     sort_by: str = "trade_date",
     sort_dir: str = "desc",
     page: int = Query(1, ge=1),
-) -> HTMLResponse:
+) -> Response:
     """List transactions with filtering, sorting, and pagination."""
     per_page = 50
 

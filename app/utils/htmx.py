@@ -2,6 +2,7 @@
 
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
+from starlette.responses import Response
 
 
 def is_htmx_request(request: Request) -> bool:
@@ -15,7 +16,7 @@ def htmx_response(
     full_template: str,
     partial_template: str,
     context: dict,
-):
+) -> Response:
     """
     Return appropriate template response based on HTMX vs full page request.
 

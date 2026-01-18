@@ -1,10 +1,6 @@
-from datetime import date
-
-from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
 from app.models import Transaction
-from app.models.tag import transaction_tags
 from app.services.filters import (
     PaginationParams,
     TransactionFilter,

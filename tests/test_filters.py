@@ -75,7 +75,9 @@ def sample_transactions(db_session: Session) -> list[Transaction]:
     return transactions
 
 
-def test_filter_by_account_id(db_session: Session, sample_transactions: list[Transaction]):
+def test_filter_by_account_id(
+    db_session: Session, sample_transactions: list[Transaction]
+):
     """Test filtering by account_id."""
     filters = TransactionFilter(account_id=sample_transactions[0].account_id)
     query = db_session.query(Transaction)
@@ -97,7 +99,9 @@ def test_filter_by_symbol(db_session: Session, sample_transactions: list[Transac
     assert results[0].symbol == "AAPL"
 
 
-def test_filter_by_underlying_symbol(db_session: Session, sample_transactions: list[Transaction]):
+def test_filter_by_underlying_symbol(
+    db_session: Session, sample_transactions: list[Transaction]
+):
     """Test filtering by underlying_symbol for options."""
     filters = TransactionFilter(symbol="TSLA")
     query = db_session.query(Transaction)
@@ -108,7 +112,9 @@ def test_filter_by_underlying_symbol(db_session: Session, sample_transactions: l
     assert results[0].underlying_symbol == "TSLA"
 
 
-def test_filter_by_transaction_type(db_session: Session, sample_transactions: list[Transaction]):
+def test_filter_by_transaction_type(
+    db_session: Session, sample_transactions: list[Transaction]
+):
     """Test filtering by transaction type."""
     filters = TransactionFilter(transaction_type="BUY")
     query = db_session.query(Transaction)
@@ -119,7 +125,9 @@ def test_filter_by_transaction_type(db_session: Session, sample_transactions: li
     assert all(t.type == "BUY" for t in results)
 
 
-def test_filter_by_date_range(db_session: Session, sample_transactions: list[Transaction]):
+def test_filter_by_date_range(
+    db_session: Session, sample_transactions: list[Transaction]
+):
     """Test filtering by date range."""
     filters = TransactionFilter(
         start_date=date(2024, 1, 2),
@@ -133,7 +141,9 @@ def test_filter_by_date_range(db_session: Session, sample_transactions: list[Tra
     assert results[0].trade_date == date(2024, 1, 2)
 
 
-def test_filter_by_is_option(db_session: Session, sample_transactions: list[Transaction]):
+def test_filter_by_is_option(
+    db_session: Session, sample_transactions: list[Transaction]
+):
     """Test filtering by is_option flag."""
     filters = TransactionFilter(is_option=True)
     query = db_session.query(Transaction)
@@ -144,7 +154,9 @@ def test_filter_by_is_option(db_session: Session, sample_transactions: list[Tran
     assert results[0].is_option is True
 
 
-def test_filter_by_option_type(db_session: Session, sample_transactions: list[Transaction]):
+def test_filter_by_option_type(
+    db_session: Session, sample_transactions: list[Transaction]
+):
     """Test filtering by option_type."""
     filters = TransactionFilter(option_type="CALL")
     query = db_session.query(Transaction)

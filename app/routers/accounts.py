@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from starlette.responses import Response
 
 from app.database import get_db
 from app.services import account_service, market_data_service, position_service
@@ -12,7 +13,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)
-def list_accounts(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
+def list_accounts(request: Request, db: Session = Depends(get_db)) -> Response:
     """List all accounts with totals."""
     accounts_with_totals = account_service.get_all_accounts_with_totals(db)
 
@@ -30,7 +31,7 @@ def list_accounts(request: Request, db: Session = Depends(get_db)) -> HTMLRespon
 @router.get("/{account_id}/positions", response_class=HTMLResponse)
 def account_positions(
     request: Request, account_id: int, db: Session = Depends(get_db)
-) -> HTMLResponse:
+) -> Response:
     """View positions for an account."""
     account = account_service.get_account_by_id(db, account_id)
     if not account:
@@ -57,7 +58,7 @@ def account_positions(
 @router.post("/{account_id}/positions/refresh", response_class=HTMLResponse)
 def refresh_prices(
     request: Request, account_id: int, db: Session = Depends(get_db)
-) -> HTMLResponse:
+) -> Response:
     """Refresh current prices for account positions via Finnhub."""
     account = account_service.get_account_by_id(db, account_id)
     if not account:

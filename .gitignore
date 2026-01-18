@@ -23,6 +23,12 @@ __pycache__/
 !.vscode/extensions.json
 *.swp
 
+# Git worktrees
+.worktrees/
+
 # Coverage
 .coverage
 htmlcov/
+
+# API Response Examples
+.outputs

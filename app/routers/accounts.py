@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services import account_service, market_data_service, position_service
+from app.utils.htmx import htmx_response
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -15,18 +16,14 @@ def list_accounts(request: Request, db: Session = Depends(get_db)) -> HTMLRespon
     """List all accounts with totals."""
     accounts_with_totals = account_service.get_all_accounts_with_totals(db)
 
-    # Return partial for HTMX requests
-    if request.headers.get("HX-Request") == "true":
-        return templates.TemplateResponse(
-            request=request,
-            name="partials/account_list.html",
-            context={"accounts": accounts_with_totals},
-        )
+    context = {"accounts": accounts_with_totals, "title": "Accounts"}
 
-    return templates.TemplateResponse(
+    return htmx_response(
+        templates=templates,
         request=request,
-        name="accounts.html",
-        context={"accounts": accounts_with_totals, "title": "Accounts"},
+        full_template="accounts.html",
+        partial_template="partials/account_list.html",
+        context=context,
     )
 
 
@@ -41,23 +38,19 @@ def account_positions(
 
     positions, totals = position_service.get_account_positions_summary(db, account_id)
 
-    # Return partial for HTMX requests
-    if request.headers.get("HX-Request") == "true":
-        return templates.TemplateResponse(
-            request=request,
-            name="partials/position_list.html",
-            context={"positions": positions, "totals": totals},
-        )
+    context = {
+        "account": account,
+        "positions": positions,
+        "totals": totals,
+        "title": f"Positions - {account.name}",
+    }
 
-    return templates.TemplateResponse(
+    return htmx_response(
+        templates=templates,
         request=request,
-        name="account_positions.html",
-        context={
-            "account": account,
-            "positions": positions,
-            "totals": totals,
-            "title": f"Positions - {account.name}",
-        },
+        full_template="account_positions.html",
+        partial_template="partials/position_list.html",
+        context=context,
     )
 
 

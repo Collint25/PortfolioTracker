@@ -7,7 +7,6 @@ from app.models.position import Position
 from app.models.saved_filter import SavedFilter
 from app.models.security import SecurityInfo
 from app.models.tag import Tag, transaction_tags
-from app.models.trade_group import TradeGroup, trade_group_transactions
 from app.models.transaction import Transaction
 
 __all__ = [
@@ -18,10 +17,8 @@ __all__ = [
     "SecurityInfo",
     "Tag",
     "Comment",
-    "TradeGroup",
     "LinkedTrade",
     "LinkedTradeLeg",
     "SavedFilter",
     "transaction_tags",
-    "trade_group_transactions",
 ]

@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from app.models.comment import Comment
     from app.models.linked_trade_leg import LinkedTradeLeg
     from app.models.tag import Tag
-    from app.models.trade_group import TradeGroup
 
 
 class Transaction(Base, TimestampMixin):
@@ -59,9 +58,6 @@ class Transaction(Base, TimestampMixin):
     )
     comments: Mapped[list["Comment"]] = relationship(
         back_populates="transaction", cascade="all, delete-orphan"
-    )
-    trade_groups: Mapped[list["TradeGroup"]] = relationship(
-        secondary="trade_group_transactions", back_populates="transactions"
     )
     linked_trade_legs: Mapped[list["LinkedTradeLeg"]] = relationship(
         back_populates="transaction"

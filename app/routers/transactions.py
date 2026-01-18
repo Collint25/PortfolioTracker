@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from starlette.responses import Response
 
 from app.database import get_db
 from app.services import (
@@ -12,6 +13,8 @@ from app.services import (
     tag_service,
     transaction_service,
 )
+from app.services.filters import PaginationParams, TransactionFilter
+from app.utils.htmx import htmx_response
 from app.utils.query_params import parse_bool_param, parse_date_param, parse_int_param
 
 router = APIRouter()
@@ -78,39 +81,38 @@ def list_transactions(
     sort_by: str = "trade_date",
     sort_dir: str = "desc",
     page: int = Query(1, ge=1),
-) -> HTMLResponse:
+) -> Response:
     """List transactions with filtering, sorting, and pagination."""
     per_page = 50
 
-    # Parse query params using utilities
+    # Parse query params
     account_id_int = parse_int_param(account_id)
     tag_id_int = parse_int_param(tag_id)
-    symbol_val = symbol or None
-    type_val = type or None
-    search_val = search or None
-    option_type_val = option_type or None
-    option_action_val = option_action or None
     is_option_val = parse_bool_param(is_option)
     start_date_val = parse_date_param(start_date)
     end_date_val = parse_date_param(end_date)
 
-    transactions, total = transaction_service.get_transactions(
-        db,
+    # Build filter object
+    filters = TransactionFilter(
         account_id=account_id_int,
-        symbol=symbol_val,
-        transaction_type=type_val,
+        symbol=symbol or None,
+        transaction_type=type or None,
         tag_id=tag_id_int,
         start_date=start_date_val,
         end_date=end_date_val,
-        search=search_val,
+        search=search or None,
         is_option=is_option_val,
-        option_type=option_type_val,
-        option_action=option_action_val,
+        option_type=option_type or None,
+        option_action=option_action or None,
         sort_by=sort_by,
         sort_dir=sort_dir,
-        page=page,
-        per_page=per_page,
     )
+
+    # Build pagination object
+    pagination = PaginationParams(page=page, per_page=per_page)
+
+    # Get transactions
+    transactions, total = transaction_service.get_transactions(db, filters, pagination)
 
     total_pages = (total + per_page - 1) // per_page
 
@@ -124,16 +126,16 @@ def list_transactions(
 
     # Build query string for saved filters and table links
     filter_query_string = build_filter_query_string(
-        search=search_val,
+        search=search,
         account_id=account_id_int,
-        symbol=symbol_val,
-        type=type_val,
+        symbol=symbol,
+        type=type,
         tag_id=tag_id_int,
         start_date=start_date,
         end_date=end_date,
         is_option=is_option,
-        option_type=option_type_val,
-        option_action=option_action_val,
+        option_type=option_type,
+        option_action=option_action,
         sort_by=sort_by,
         sort_dir=sort_dir,
     )
@@ -157,31 +159,26 @@ def list_transactions(
         "filter_query_string": filter_query_string,
         # Current filter values
         "current_account_id": account_id_int,
-        "current_symbol": symbol_val,
-        "current_type": type_val,
+        "current_symbol": symbol,
+        "current_type": type,
         "current_tag_id": tag_id_int,
         "current_start_date": start_date_val,
         "current_end_date": end_date_val,
-        "current_search": search_val,
+        "current_search": search,
         "current_is_option": is_option,
-        "current_option_type": option_type_val,
-        "current_option_action": option_action_val,
+        "current_option_type": option_type,
+        "current_option_action": option_action,
         "current_sort_by": sort_by,
         "current_sort_dir": sort_dir,
         "title": "Transactions",
     }
 
-    # Return partial for HTMX requests
-    if request.headers.get("HX-Request") == "true":
-        return templates.TemplateResponse(
-            request=request,
-            name="partials/transaction_table.html",
-            context=context,
-        )
-
-    return templates.TemplateResponse(
+    # Use helper for HTMX response
+    return htmx_response(
+        templates=templates,
         request=request,
-        name="transactions.html",
+        full_template="transactions.html",
+        partial_template="partials/transaction_table.html",
         context=context,
     )
 

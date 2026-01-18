@@ -7,6 +7,12 @@ from typing import NamedTuple
 from sqlalchemy.orm import Session
 
 from app.models import LinkedTrade, LinkedTradeLeg, Transaction
+from app.services.filters import (
+    LinkedTradeFilter,
+    PaginationParams,
+    apply_linked_trade_filters,
+    apply_pagination,
+)
 
 
 class ContractKey(NamedTuple):
@@ -24,31 +30,25 @@ class ContractKey(NamedTuple):
 
 def get_all_linked_trades(
     db: Session,
-    *,
-    account_id: int | None = None,
-    underlying_symbol: str | None = None,
-    is_closed: bool | None = None,
-    page: int = 1,
-    per_page: int = 50,
+    filters: LinkedTradeFilter = LinkedTradeFilter(),
+    pagination: PaginationParams = PaginationParams(),
 ) -> tuple[list[LinkedTrade], int]:
     """Get filtered, paginated linked trades."""
     query = db.query(LinkedTrade)
 
-    if account_id is not None:
-        query = query.filter(LinkedTrade.account_id == account_id)
-    if underlying_symbol is not None:
-        query = query.filter(LinkedTrade.underlying_symbol == underlying_symbol)
-    if is_closed is not None:
-        query = query.filter(LinkedTrade.is_closed == is_closed)
+    # Apply filters
+    query = apply_linked_trade_filters(query, filters)
 
+    # Get total
     total = query.count()
-    linked_trades = (
-        query.order_by(LinkedTrade.expiration_date.desc(), LinkedTrade.id.desc())
-        .offset((page - 1) * per_page)
-        .limit(per_page)
-        .all()
-    )
 
+    # Sort
+    query = query.order_by(LinkedTrade.expiration_date.desc(), LinkedTrade.id.desc())
+
+    # Paginate
+    query = apply_pagination(query, pagination)
+
+    linked_trades = query.all()
     return linked_trades, total
 
 

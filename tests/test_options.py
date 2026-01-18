@@ -224,13 +224,14 @@ class TestTransactionServiceFilters:
         db_session.commit()
 
         # Filter for options only
+        from app.services.filters import TransactionFilter
         from app.services.transaction_service import get_transactions
 
-        options, count = get_transactions(db_session, is_option=True)
+        options, count = get_transactions(db_session, TransactionFilter(is_option=True))
         assert count == 1
         assert options[0].is_option is True
 
         # Filter for stocks only
-        stocks, count = get_transactions(db_session, is_option=False)
+        stocks, count = get_transactions(db_session, TransactionFilter(is_option=False))
         assert count == 1
         assert stocks[0].is_option is False

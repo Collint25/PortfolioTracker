@@ -1,29 +1,19 @@
-from datetime import date
-
-from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
 from app.models import Transaction
-from app.models.tag import transaction_tags
+from app.services.filters import (
+    PaginationParams,
+    TransactionFilter,
+    apply_pagination,
+    apply_transaction_filters,
+    apply_transaction_sorting,
+)
 
 
 def get_transactions(
     db: Session,
-    *,
-    account_id: int | None = None,
-    symbol: str | None = None,
-    transaction_type: str | None = None,
-    start_date: date | None = None,
-    end_date: date | None = None,
-    search: str | None = None,
-    tag_id: int | None = None,
-    is_option: bool | None = None,
-    option_type: str | None = None,
-    option_action: str | None = None,
-    sort_by: str = "trade_date",
-    sort_dir: str = "desc",
-    page: int = 1,
-    per_page: int = 50,
+    filters: TransactionFilter,
+    pagination: PaginationParams = PaginationParams(),
 ) -> tuple[list[Transaction], int]:
     """
     Get filtered, sorted, paginated transactions.
@@ -33,55 +23,18 @@ def get_transactions(
     query = db.query(Transaction)
 
     # Apply filters
-    if account_id:
-        query = query.filter(Transaction.account_id == account_id)
-    if symbol:
-        # Search in both symbol and underlying_symbol for options
-        query = query.filter(
-            or_(
-                Transaction.symbol == symbol,
-                Transaction.underlying_symbol == symbol,
-            )
-        )
-    if transaction_type:
-        query = query.filter(Transaction.type == transaction_type)
-    if start_date:
-        query = query.filter(Transaction.trade_date >= start_date)
-    if end_date:
-        query = query.filter(Transaction.trade_date <= end_date)
-    if search:
-        search_pattern = f"%{search}%"
-        query = query.filter(
-            or_(
-                Transaction.symbol.ilike(search_pattern),
-                Transaction.underlying_symbol.ilike(search_pattern),
-                Transaction.description.ilike(search_pattern),
-            )
-        )
-    if tag_id:
-        query = query.join(transaction_tags).filter(transaction_tags.c.tag_id == tag_id)
-    # Option filters
-    if is_option is not None:
-        query = query.filter(Transaction.is_option == is_option)
-    if option_type:
-        query = query.filter(Transaction.option_type == option_type)
-    if option_action:
-        query = query.filter(Transaction.option_action == option_action)
+    query = apply_transaction_filters(query, filters)
 
     # Get total count before pagination
     total = query.count()
 
     # Apply sorting
-    sort_column = getattr(Transaction, sort_by, Transaction.trade_date)
-    if sort_dir == "desc":
-        query = query.order_by(desc(sort_column))
-    else:
-        query = query.order_by(sort_column)
+    query = apply_transaction_sorting(query, filters)
 
     # Apply pagination
-    offset = (page - 1) * per_page
-    transactions = query.offset(offset).limit(per_page).all()
+    query = apply_pagination(query, pagination)
 
+    transactions = query.all()
     return transactions, total
 
 

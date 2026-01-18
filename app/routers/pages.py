@@ -12,11 +12,6 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
-def is_htmx_request(request: Request) -> bool:
-    """Check if request came from HTMX."""
-    return request.headers.get("HX-Request") == "true"
-
-
 @router.get("/", response_class=HTMLResponse)
 def index(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
     """Dashboard home page with account cards."""

@@ -10,7 +10,7 @@ from app.models.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.models.account import Account
     from app.models.comment import Comment
-    from app.models.linked_trade_leg import LinkedTradeLeg
+    from app.models.lot_transaction import LotTransaction
     from app.models.tag import Tag
 
 
@@ -59,6 +59,6 @@ class Transaction(Base, TimestampMixin):
     comments: Mapped[list["Comment"]] = relationship(
         back_populates="transaction", cascade="all, delete-orphan"
     )
-    linked_trade_legs: Mapped[list["LinkedTradeLeg"]] = relationship(
+    lot_transactions: Mapped[list["LotTransaction"]] = relationship(
         back_populates="transaction"
     )

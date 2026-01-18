@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services import account_service, linked_trade_service
 from app.services.filters import LinkedTradeFilter, PaginationParams
+from app.utils.htmx import htmx_response
 from app.utils.query_params import parse_bool_param
 
 router = APIRouter()
@@ -44,7 +45,6 @@ def list_linked_trades(
     total_pages = (total + 49) // 50
 
     context = {
-        "request": request,
         "linked_trades": linked_trades,
         "summary": summary,
         "symbols": symbols,
@@ -59,9 +59,13 @@ def list_linked_trades(
         "total": total,
     }
 
-    if request.headers.get("HX-Request"):
-        return templates.TemplateResponse("partials/linked_trade_list.html", context)
-    return templates.TemplateResponse("linked_trades.html", context)
+    return htmx_response(
+        templates=templates,
+        request=request,
+        full_template="linked_trades.html",
+        partial_template="partials/linked_trade_list.html",
+        context=context,
+    )
 
 
 @router.get("/{linked_trade_id}", response_class=HTMLResponse)
@@ -78,15 +82,16 @@ def linked_trade_detail(
         raise HTTPException(status_code=404, detail="Linked trade not found")
 
     context = {
-        "request": request,
         "linked_trade": linked_trade,
     }
 
-    if request.headers.get("HX-Request"):
-        return templates.TemplateResponse(
-            "partials/linked_trade_detail_content.html", context
-        )
-    return templates.TemplateResponse("linked_trade_detail.html", context)
+    return htmx_response(
+        templates=templates,
+        request=request,
+        full_template="linked_trade_detail.html",
+        partial_template="partials/linked_trade_detail_content.html",
+        context=context,
+    )
 
 
 @router.post("/auto-match", response_class=HTMLResponse)

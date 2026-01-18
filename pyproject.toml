@@ -60,12 +60,13 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 no_implicit_optional = true
 strict_equality = true
+disable_error_code = ["import-untyped"]
 
 # Third-party libraries without stubs
 [[tool.mypy.overrides]]
 module = [
     "snaptrade_python_sdk.*",
-    "snaptrade_client",
+    "snaptrade_client.*",
     "uvicorn.*",
 ]
 ignore_missing_imports = true

@@ -8,9 +8,12 @@ Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 - Package mgr: uv
 
 ## Commands
+- `uv sync --extra dev` - sync all dependencies including dev tools (run after clone)
 - `uv run python run.py` - start dev server
 - `uv run pytest` - run tests
 - `uv run alembic upgrade head` - run migrations
+
+**Note:** Dev tools (ruff, mypy, pytest) require dev dependencies. Run `uv sync --extra dev` if type checking or linting fails with import errors.
 
 ## Documentation
 

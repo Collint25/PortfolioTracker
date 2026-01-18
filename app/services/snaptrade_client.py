@@ -1,4 +1,8 @@
+from datetime import date
+from typing import Any
+
 from snaptrade_client import SnapTrade
+from snaptrade_client.schemas import Unset
 
 from app.config import get_settings
 
@@ -18,25 +22,29 @@ def get_user_credentials() -> tuple[str, str]:
     return settings.snaptrade_user_id, settings.snaptrade_user_secret
 
 
-def fetch_accounts(client: SnapTrade, user_id: str, user_secret: str) -> list[dict]:
+def fetch_accounts(client: SnapTrade, user_id: str, user_secret: str) -> list[Any]:
     """Fetch all accounts for user."""
     response = client.account_information.list_user_accounts(
         user_id=user_id,
         user_secret=user_secret,
     )
-    return response.body if response.body else []
+    if isinstance(response.body, Unset) or not response.body:
+        return []
+    return list(response.body)
 
 
 def fetch_holdings(
     client: SnapTrade, user_id: str, user_secret: str, account_id: str
-) -> list[dict]:
+) -> list[Any]:
     """Fetch holdings/positions for a specific account."""
     response = client.account_information.get_user_holdings(
         account_id=account_id,
         user_id=user_id,
         user_secret=user_secret,
     )
-    return response.body.get("positions", []) if response.body else []
+    if isinstance(response.body, Unset) or not response.body:
+        return []
+    return response.body.get("positions") or []
 
 
 def fetch_account_activities(
@@ -44,9 +52,9 @@ def fetch_account_activities(
     user_id: str,
     user_secret: str,
     account_id: str,
-    start_date: str | None = None,
-    end_date: str | None = None,
-) -> list[dict]:
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> list[Any]:
     """
     Fetch all transactions for a specific account.
 
@@ -54,7 +62,7 @@ def fetch_account_activities(
     Handles pagination internally - SnapTrade returns max 1000 per request.
     Response format: {"data": [...], "pagination": {...}}
     """
-    all_activities: list[dict] = []
+    all_activities: list[Any] = []
     offset = 0
     limit = 1000
 
@@ -70,8 +78,9 @@ def fetch_account_activities(
         )
 
         # Response is {"data": [...], "pagination": {...}}
-        body = response.body if response.body else {}
-        activities = body.get("data", [])
+        if isinstance(response.body, Unset) or not response.body:
+            break
+        activities = response.body.get("data", [])
         if not activities:
             break
 
@@ -88,11 +97,13 @@ def fetch_account_activities(
 
 def fetch_option_holdings(
     client: SnapTrade, user_id: str, user_secret: str, account_id: str
-) -> list[dict]:
+) -> list[Any]:
     """Fetch option holdings/positions for a specific account."""
     response = client.options.list_option_holdings(
         account_id=account_id,
         user_id=user_id,
         user_secret=user_secret,
     )
-    return response.body if response.body else []
+    if isinstance(response.body, Unset) or not response.body:
+        return []
+    return list(response.body)

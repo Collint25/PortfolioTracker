@@ -25,3 +25,38 @@ def linked_trade_pl(linked_trade: "LinkedTrade") -> Decimal:
                 total_pl += txn.amount * proportion
 
     return total_pl
+
+
+def pl_summary(linked_trades: list["LinkedTrade"]) -> dict:
+    """
+    Calculate P/L summary statistics from a list of linked trades.
+
+    Returns dict with: total_pl, winners, losers, win_rate, open_count, closed_count
+    """
+    total_pl = Decimal("0")
+    winners = 0
+    losers = 0
+    open_count = 0
+    closed_count = 0
+
+    for lt in linked_trades:
+        if lt.is_closed:
+            closed_count += 1
+            total_pl += lt.realized_pl
+            if lt.realized_pl > 0:
+                winners += 1
+            elif lt.realized_pl < 0:
+                losers += 1
+        else:
+            open_count += 1
+
+    win_rate = (winners / closed_count * 100) if closed_count > 0 else 0
+
+    return {
+        "total_pl": total_pl,
+        "winners": winners,
+        "losers": losers,
+        "win_rate": win_rate,
+        "open_count": open_count,
+        "closed_count": closed_count,
+    }

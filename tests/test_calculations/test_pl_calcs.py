@@ -58,3 +58,78 @@ class TestLinkedTradePl:
 
         result = pl_calcs.linked_trade_pl(linked_trade)
         assert result == Decimal("0")
+
+
+def make_linked_trade(realized_pl: str, is_closed: bool) -> MagicMock:
+    """Create a mock LinkedTrade for summary tests."""
+    lt = MagicMock()
+    lt.realized_pl = Decimal(realized_pl)
+    lt.is_closed = is_closed
+    lt.legs = []  # Not needed for summary
+    return lt
+
+
+class TestPlSummary:
+    def test_calculates_total_pl(self):
+        """Sums realized P/L from closed trades."""
+        trades = [
+            make_linked_trade("100", is_closed=True),
+            make_linked_trade("-50", is_closed=True),
+        ]
+
+        result = pl_calcs.pl_summary(trades)
+        assert result["total_pl"] == Decimal("50")
+
+    def test_counts_winners_and_losers(self):
+        """Categorizes closed trades by P/L sign."""
+        trades = [
+            make_linked_trade("100", is_closed=True),  # winner
+            make_linked_trade("-50", is_closed=True),  # loser
+            make_linked_trade("200", is_closed=True),  # winner
+        ]
+
+        result = pl_calcs.pl_summary(trades)
+        assert result["winners"] == 2
+        assert result["losers"] == 1
+
+    def test_calculates_win_rate(self):
+        """Win rate = winners / closed_count * 100."""
+        trades = [
+            make_linked_trade("100", is_closed=True),
+            make_linked_trade("-50", is_closed=True),
+        ]
+
+        result = pl_calcs.pl_summary(trades)
+        assert result["win_rate"] == 50.0
+
+    def test_counts_open_and_closed(self):
+        """Separately counts open and closed trades."""
+        trades = [
+            make_linked_trade("0", is_closed=False),  # open
+            make_linked_trade("100", is_closed=True),  # closed
+        ]
+
+        result = pl_calcs.pl_summary(trades)
+        assert result["open_count"] == 1
+        assert result["closed_count"] == 1
+
+    def test_excludes_open_trades_from_pl(self):
+        """Open trades don't contribute to total P/L."""
+        trades = [
+            make_linked_trade("999", is_closed=False),  # open - ignored
+            make_linked_trade("100", is_closed=True),
+        ]
+
+        result = pl_calcs.pl_summary(trades)
+        assert result["total_pl"] == Decimal("100")
+
+    def test_empty_list_returns_zeros(self):
+        """Handles empty trade list gracefully."""
+        result = pl_calcs.pl_summary([])
+
+        assert result["total_pl"] == Decimal("0")
+        assert result["winners"] == 0
+        assert result["losers"] == 0
+        assert result["win_rate"] == 0
+        assert result["open_count"] == 0
+        assert result["closed_count"] == 0

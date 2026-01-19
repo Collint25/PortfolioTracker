@@ -1,10 +1,11 @@
-.PHONY: help setup dev test lint format check migrate clean kill
+.PHONY: help setup dev run test lint format check migrate clean kill
 
 # Default target
 help:
 	@echo "Portfolio Tracker Development Commands"
 	@echo ""
 	@echo "  make dev      - Sync deps, migrate, and run dev server"
+	@echo "  make run      - Start dev server only (no setup)"
 	@echo "  make setup    - Sync deps and run migrations"
 	@echo "  make migrate  - Run database migrations only"
 	@echo "  make test     - Run pytest"
@@ -21,6 +22,10 @@ setup:
 
 # Run dev server (with setup)
 dev: setup
+	uv run python run.py
+
+# Run dev server only (no setup)
+run:
 	uv run python run.py
 
 # Run tests

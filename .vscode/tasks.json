@@ -1,0 +1,93 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "dev: Start Dev Server (with setup)",
+            "type": "shell",
+            "command": "make dev",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "run: Start Server Only",
+            "type": "shell",
+            "command": "make run",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "test: Run Tests",
+            "type": "shell",
+            "command": "make test",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": ["$python"]
+        },
+        {
+            "label": "lint: Check Code",
+            "type": "shell",
+            "command": "make lint",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": ["$python"]
+        },
+        {
+            "label": "format: Auto-format",
+            "type": "shell",
+            "command": "make format",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "check: Lint + Test",
+            "type": "shell",
+            "command": "make check",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": ["$python"]
+        },
+        {
+            "label": "migrate: Run Migrations",
+            "type": "shell",
+            "command": "make migrate",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "kill: Stop Server",
+            "type": "shell",
+            "command": "make kill",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

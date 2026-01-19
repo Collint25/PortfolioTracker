@@ -14,6 +14,7 @@ make dev     # Sync deps, migrate, and run dev server
 
 ## Make Commands
 - `make dev` - sync deps, migrate, run server (use this to start working)
+- `make run` - start server only (no setup, faster)
 - `make setup` - sync deps and migrate (no server)
 - `make migrate` - run database migrations only
 - `make test` - run pytest

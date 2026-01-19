@@ -7,7 +7,7 @@ from app.calculations import pl_calcs
 
 
 def make_leg(allocated_qty: str, txn_qty: str, txn_amount: str) -> MagicMock:
-    """Create a mock LinkedTradeLeg."""
+    """Create a mock LotTransaction."""
     leg = MagicMock()
     leg.allocated_quantity = Decimal(allocated_qty)
     leg.transaction = MagicMock()
@@ -60,8 +60,8 @@ class TestLinkedTradePl:
         assert result == Decimal("0")
 
 
-def make_linked_trade(realized_pl: str, is_closed: bool) -> MagicMock:
-    """Create a mock LinkedTrade for summary tests."""
+def make_lot(realized_pl: str, is_closed: bool) -> MagicMock:
+    """Create a mock TradeLot for summary tests."""
     lt = MagicMock()
     lt.realized_pl = Decimal(realized_pl)
     lt.is_closed = is_closed
@@ -73,8 +73,8 @@ class TestPlSummary:
     def test_calculates_total_pl(self):
         """Sums realized P/L from closed trades."""
         trades = [
-            make_linked_trade("100", is_closed=True),
-            make_linked_trade("-50", is_closed=True),
+            make_lot("100", is_closed=True),
+            make_lot("-50", is_closed=True),
         ]
 
         result = pl_calcs.pl_summary(trades)
@@ -83,9 +83,9 @@ class TestPlSummary:
     def test_counts_winners_and_losers(self):
         """Categorizes closed trades by P/L sign."""
         trades = [
-            make_linked_trade("100", is_closed=True),  # winner
-            make_linked_trade("-50", is_closed=True),  # loser
-            make_linked_trade("200", is_closed=True),  # winner
+            make_lot("100", is_closed=True),  # winner
+            make_lot("-50", is_closed=True),  # loser
+            make_lot("200", is_closed=True),  # winner
         ]
 
         result = pl_calcs.pl_summary(trades)
@@ -95,8 +95,8 @@ class TestPlSummary:
     def test_calculates_win_rate(self):
         """Win rate = winners / closed_count * 100."""
         trades = [
-            make_linked_trade("100", is_closed=True),
-            make_linked_trade("-50", is_closed=True),
+            make_lot("100", is_closed=True),
+            make_lot("-50", is_closed=True),
         ]
 
         result = pl_calcs.pl_summary(trades)
@@ -105,8 +105,8 @@ class TestPlSummary:
     def test_counts_open_and_closed(self):
         """Separately counts open and closed trades."""
         trades = [
-            make_linked_trade("0", is_closed=False),  # open
-            make_linked_trade("100", is_closed=True),  # closed
+            make_lot("0", is_closed=False),  # open
+            make_lot("100", is_closed=True),  # closed
         ]
 
         result = pl_calcs.pl_summary(trades)
@@ -116,8 +116,8 @@ class TestPlSummary:
     def test_excludes_open_trades_from_pl(self):
         """Open trades don't contribute to total P/L."""
         trades = [
-            make_linked_trade("999", is_closed=False),  # open - ignored
-            make_linked_trade("100", is_closed=True),
+            make_lot("999", is_closed=False),  # open - ignored
+            make_lot("100", is_closed=True),
         ]
 
         result = pl_calcs.pl_summary(trades)

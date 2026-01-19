@@ -19,8 +19,6 @@ __pycache__/
 .idea/
 .vscode/*
 !.vscode/launch.json
-!.vscode/settings.json
-!.vscode/extensions.json
 *.swp
 
 # Claude Code local settings

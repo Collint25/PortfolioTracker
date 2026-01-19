@@ -123,12 +123,12 @@
                 </div>
             </div>
 
-            {% if transaction.is_option %}
+            {% if transaction.is_option or transaction.type in ['BUY', 'SELL'] %}
             <div class="divider"></div>
 
             <div>
-                <p class="text-sm text-base-content/60 mb-2">Linked Trades (P/L)</p>
-                <div id="transaction-linked-trades" hx-get="/linked-trades/transaction/{{ transaction.id }}" hx-trigger="load" hx-swap="innerHTML">
+                <p class="text-sm text-base-content/60 mb-2">Lots (P/L)</p>
+                <div id="transaction-lots" hx-get="/lots/transaction/{{ transaction.id }}" hx-trigger="load" hx-swap="innerHTML">
                     <span class="loading loading-spinner loading-xs"></span>
                 </div>
             </div>

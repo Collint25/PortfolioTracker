@@ -102,7 +102,7 @@ def run_auto_match(
     account_id: int | None = Form(None),
 ):
     """Run FIFO auto-matching on all unlinked transactions."""
-    result = lot_service.auto_match_all(db, account_id)
+    result = lot_service.match_all(db, account_id)
 
     # Build filter object
     filters = LotFilter(account_id=account_id)

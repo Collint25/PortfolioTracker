@@ -1,6 +1,6 @@
 """Calculation modules for position metrics and P/L analysis."""
 
-from app.calculations.pl_calcs import linked_trade_pl, pl_summary
+from app.calculations.pl_calcs import linked_trade_pl, pl_over_time, pl_summary
 from app.calculations.position_calcs import (
     cost_basis,
     daily_change,
@@ -20,5 +20,6 @@ __all__ = [
     "daily_change_percent",
     # P/L calculations
     "linked_trade_pl",
+    "pl_over_time",
     "pl_summary",
 ]

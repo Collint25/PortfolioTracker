@@ -1,13 +1,15 @@
 """Pure calculation functions for trade P/L metrics."""
 
+from collections import defaultdict
+from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.models import LinkedTrade
+    from app.models import TradeLot
 
 
-def linked_trade_pl(linked_trade: "LinkedTrade") -> Decimal:
+def linked_trade_pl(linked_trade: "TradeLot") -> Decimal:
     """
     Calculate realized P/L for a linked trade.
 
@@ -27,7 +29,7 @@ def linked_trade_pl(linked_trade: "LinkedTrade") -> Decimal:
     return total_pl
 
 
-def pl_summary(linked_trades: list["LinkedTrade"]) -> dict:
+def pl_summary(linked_trades: list["TradeLot"]) -> dict:
     """
     Calculate P/L summary statistics from a list of linked trades.
 
@@ -60,3 +62,33 @@ def pl_summary(linked_trades: list["LinkedTrade"]) -> dict:
         "open_count": open_count,
         "closed_count": closed_count,
     }
+
+
+def pl_over_time(lots: list["TradeLot"]) -> list[dict]:
+    """
+    Calculate cumulative P/L over time from closed lots.
+
+    Returns list of dicts with 'date' and 'cumulative_pl' keys,
+    sorted chronologically. Same-day closes are aggregated.
+    """
+    # Group P/L by close date
+    daily_pl: dict[date, Decimal] = defaultdict(Decimal)
+
+    for lot in lots:
+        if not lot.is_closed:
+            continue
+        # Get close date from last leg
+        if lot.legs:
+            close_date = lot.legs[-1].trade_date
+            daily_pl[close_date] += lot.realized_pl
+
+    # Sort by date and compute cumulative
+    sorted_dates = sorted(daily_pl.keys())
+    result = []
+    cumulative = Decimal("0")
+
+    for d in sorted_dates:
+        cumulative += daily_pl[d]
+        result.append({"date": d, "cumulative_pl": cumulative})
+
+    return result

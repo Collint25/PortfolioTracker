@@ -1,5 +1,6 @@
 """Tests for P/L calculation functions."""
 
+from datetime import date
 from decimal import Decimal
 from unittest.mock import MagicMock
 
@@ -133,3 +134,76 @@ class TestPlSummary:
         assert result["win_rate"] == 0
         assert result["open_count"] == 0
         assert result["closed_count"] == 0
+
+
+def make_lot_with_date(
+    realized_pl: str, is_closed: bool, close_date: date | None
+) -> MagicMock:
+    """Create a mock TradeLot with close date for time series tests."""
+    lt = MagicMock()
+    lt.realized_pl = Decimal(realized_pl)
+    lt.is_closed = is_closed
+    # Simulate getting close date from last leg
+    if close_date:
+        leg = MagicMock()
+        leg.trade_date = close_date
+        lt.legs = [leg]
+    else:
+        lt.legs = []
+    return lt
+
+
+class TestPlOverTime:
+    def test_returns_cumulative_pl_by_date(self):
+        """Returns list of dicts with date and cumulative P/L."""
+        lots = [
+            make_lot_with_date("100", is_closed=True, close_date=date(2025, 1, 10)),
+            make_lot_with_date("50", is_closed=True, close_date=date(2025, 1, 15)),
+        ]
+
+        result = pl_calcs.pl_over_time(lots)
+
+        assert len(result) == 2
+        assert result[0] == {"date": date(2025, 1, 10), "cumulative_pl": Decimal("100")}
+        assert result[1] == {"date": date(2025, 1, 15), "cumulative_pl": Decimal("150")}
+
+    def test_sorts_by_date(self):
+        """Results are sorted chronologically even if input is not."""
+        lots = [
+            make_lot_with_date("50", is_closed=True, close_date=date(2025, 1, 20)),
+            make_lot_with_date("100", is_closed=True, close_date=date(2025, 1, 5)),
+        ]
+
+        result = pl_calcs.pl_over_time(lots)
+
+        assert result[0]["date"] == date(2025, 1, 5)
+        assert result[1]["date"] == date(2025, 1, 20)
+
+    def test_aggregates_same_day(self):
+        """Multiple closes on same day are aggregated into one data point."""
+        lots = [
+            make_lot_with_date("100", is_closed=True, close_date=date(2025, 1, 10)),
+            make_lot_with_date("50", is_closed=True, close_date=date(2025, 1, 10)),
+        ]
+
+        result = pl_calcs.pl_over_time(lots)
+
+        assert len(result) == 1
+        assert result[0]["cumulative_pl"] == Decimal("150")
+
+    def test_excludes_open_lots(self):
+        """Open lots are excluded from time series."""
+        lots = [
+            make_lot_with_date("100", is_closed=True, close_date=date(2025, 1, 10)),
+            make_lot_with_date("999", is_closed=False, close_date=None),
+        ]
+
+        result = pl_calcs.pl_over_time(lots)
+
+        assert len(result) == 1
+        assert result[0]["cumulative_pl"] == Decimal("100")
+
+    def test_empty_list_returns_empty(self):
+        """Empty input returns empty list."""
+        result = pl_calcs.pl_over_time([])
+        assert result == []

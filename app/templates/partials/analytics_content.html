@@ -1,0 +1,105 @@
+<!-- P/L Summary Cards -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Realized P/L</div>
+        <div class="stat-value text-lg {% if metrics.summary.total_realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+            ${{ "%.2f"|format(metrics.summary.total_realized_pl) }}
+        </div>
+        <div class="stat-desc">{{ metrics.summary.total_trades }} closed trades</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Unrealized P/L</div>
+        <div class="stat-value text-lg {% if metrics.summary.total_unrealized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+            ${{ "%.2f"|format(metrics.summary.total_unrealized_pl) }}
+        </div>
+        <div class="stat-desc">Open positions</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Win Rate</div>
+        <div class="stat-value text-lg">{{ "%.1f"|format(metrics.summary.win_rate * 100) }}%</div>
+        <div class="stat-desc">{{ metrics.summary.winning_trades }}W / {{ metrics.summary.losing_trades }}L</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Total P/L</div>
+        {% set total_pl = metrics.summary.total_realized_pl + metrics.summary.total_unrealized_pl %}
+        <div class="stat-value text-lg {% if total_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+            ${{ "%.2f"|format(total_pl) }}
+        </div>
+        <div class="stat-desc">Realized + Unrealized</div>
+    </div>
+</div>
+
+<!-- Cumulative P/L Chart -->
+<div class="card bg-base-100 shadow">
+    <div class="card-body">
+        <h2 class="card-title">Cumulative P/L Over Time</h2>
+        {% if chart_labels %}
+        <div class="h-80">
+            <canvas id="plChart"></canvas>
+        </div>
+        <script>
+            // Destroy existing chart if it exists (for HTMX reloads)
+            if (window.plChartInstance) {
+                window.plChartInstance.destroy();
+            }
+
+            const ctx = document.getElementById('plChart').getContext('2d');
+            window.plChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ chart_labels | tojson }},
+                    datasets: [{
+                        label: 'Cumulative P/L',
+                        data: {{ chart_data | tojson }},
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'P/L ($)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
+        {% else %}
+        <div class="flex items-center justify-center h-40 text-base-content/60">
+            <p>No closed trades yet. Complete some trades to see your P/L chart.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>

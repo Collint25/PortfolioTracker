@@ -197,3 +197,154 @@
     {% include "partials/transaction_table.html" %}
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+// Debounce helper
+function debounce(fn, ms) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), ms);
+    };
+}
+
+// Dispatch filter change event
+function dispatchFilterChanged() {
+    document.body.dispatchEvent(new CustomEvent('filterChanged'));
+}
+
+// Debounced version for text inputs
+const debouncedFilterChange = debounce(dispatchFilterChanged, 300);
+
+// Remove chip and trigger filter
+function removeChip(btn) {
+    btn.closest('.chip').remove();
+    dispatchFilterChanged();
+}
+
+// Add chip from dropdown
+function addChip(name, value, label, element) {
+    const container = document.querySelector(`[data-multiselect="${name}"] .flex-wrap`);
+    const mode = document.querySelector(`[name="${name}_mode"]`).value;
+    const badgeClass = mode === 'include' ? 'badge-success' : 'badge-error';
+
+    // Check if already exists
+    if (container.querySelector(`[data-value="${value}"]`)) {
+        return;
+    }
+
+    // Create chip
+    const chip = document.createElement('span');
+    chip.className = `badge ${badgeClass} gap-1 chip`;
+    chip.dataset.value = value;
+    chip.innerHTML = `
+        ${label}
+        <button type="button" onclick="removeChip(this)" class="hover:text-base-content/50">&times;</button>
+        <input type="hidden" name="${name}" value="${value}" />
+    `;
+
+    // Insert before the dropdown/input
+    const addButton = container.querySelector('.dropdown, .chip-input');
+    container.insertBefore(chip, addButton);
+
+    // Close dropdown
+    if (element) {
+        element.closest('.dropdown')?.blur();
+        document.activeElement?.blur();
+    }
+
+    dispatchFilterChanged();
+}
+
+// Update chip colors when mode changes
+document.querySelectorAll('[name$="_mode"]').forEach(select => {
+    select.addEventListener('change', function() {
+        const name = this.name.replace('_mode', '');
+        const container = document.querySelector(`[data-multiselect="${name}"]`);
+        const isInclude = this.value === 'include';
+
+        container.querySelectorAll('.chip').forEach(chip => {
+            chip.classList.remove('badge-success', 'badge-error');
+            chip.classList.add(isInclude ? 'badge-success' : 'badge-error');
+        });
+    });
+});
+
+// Autocomplete for symbol input
+document.querySelectorAll('.chip-input[data-autocomplete]').forEach(input => {
+    let dropdown = null;
+
+    input.addEventListener('input', debounce(async function() {
+        const url = this.dataset.autocomplete;
+        const name = this.dataset.name;
+        const query = this.value.trim();
+
+        if (query.length < 1) {
+            if (dropdown) dropdown.remove();
+            return;
+        }
+
+        const response = await fetch(`${url}?q=${encodeURIComponent(query)}`);
+        const symbols = await response.json();
+
+        // Remove existing dropdown
+        if (dropdown) dropdown.remove();
+
+        if (symbols.length === 0) return;
+
+        // Create dropdown
+        dropdown = document.createElement('ul');
+        dropdown.className = 'absolute z-50 menu p-2 shadow bg-base-100 rounded-box w-40 max-h-60 overflow-y-auto';
+        dropdown.style.top = '100%';
+        dropdown.style.left = '0';
+
+        // Get existing values
+        const container = this.closest('[data-multiselect]');
+        const existing = Array.from(container.querySelectorAll('.chip')).map(c => c.dataset.value);
+
+        symbols.filter(s => !existing.includes(s)).forEach(symbol => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a>${symbol}</a>`;
+            li.querySelector('a').addEventListener('click', () => {
+                addChip(name, symbol, symbol);
+                this.value = '';
+                dropdown.remove();
+                dropdown = null;
+            });
+            dropdown.appendChild(li);
+        });
+
+        this.parentElement.style.position = 'relative';
+        this.parentElement.appendChild(dropdown);
+    }, 200));
+
+    // Close dropdown on blur
+    input.addEventListener('blur', () => {
+        setTimeout(() => {
+            if (dropdown) {
+                dropdown.remove();
+                dropdown = null;
+            }
+        }, 200);
+    });
+
+    // Handle enter key
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const value = this.value.trim().toUpperCase();
+            if (value) {
+                const name = this.dataset.name;
+                addChip(name, value, value);
+                this.value = '';
+                if (dropdown) {
+                    dropdown.remove();
+                    dropdown = null;
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

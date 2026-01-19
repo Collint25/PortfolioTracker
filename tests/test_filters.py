@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 from sqlalchemy.orm import Session
 
-from app.models import Account, Transaction
+from app.models import Account, SavedFilter, Transaction
 from app.services.filters import (
     PaginationParams,
     TransactionFilter,
@@ -15,6 +15,7 @@ from app.services.filters import (
     apply_transaction_filters,
     apply_transaction_sorting,
     build_filter_from_query_string,
+    get_effective_transaction_filter,
     has_any_filter_params,
 )
 
@@ -326,3 +327,81 @@ def test_build_filter_from_request_with_params():
     assert result.symbol == "MSFT"
     assert result.account_id == 2
     assert result.is_option is False
+
+
+# Tests for get_effective_transaction_filter
+
+
+def test_get_effective_filter_with_explicit_params(db_session: Session):
+    """When request has filter params, use them (ignore favorite)."""
+    # Create a favorite filter
+    favorite = SavedFilter(
+        name="Favorite",
+        page="transactions",
+        filter_json="symbol=IGNORED",
+        is_favorite=True,
+    )
+    db_session.add(favorite)
+    db_session.commit()
+
+    request = MagicMock()
+    request.query_params = {"symbol": "AAPL"}
+
+    filter_obj, applied_favorite = get_effective_transaction_filter(request, db_session)
+
+    assert filter_obj.symbol == "AAPL"
+    assert applied_favorite is None
+
+
+def test_get_effective_filter_applies_favorite(db_session: Session):
+    """When no filter params and favorite exists, apply it."""
+    favorite = SavedFilter(
+        name="My Favorite",
+        page="transactions",
+        filter_json="symbol=TSLA&account_id=5",
+        is_favorite=True,
+    )
+    db_session.add(favorite)
+    db_session.commit()
+
+    request = MagicMock()
+    request.query_params = {}
+
+    filter_obj, applied_favorite = get_effective_transaction_filter(request, db_session)
+
+    assert filter_obj.symbol == "TSLA"
+    assert filter_obj.account_id == 5
+    assert applied_favorite is not None
+    assert applied_favorite.name == "My Favorite"
+
+
+def test_get_effective_filter_no_favorite(db_session: Session):
+    """When no filter params and no favorite, return defaults."""
+    request = MagicMock()
+    request.query_params = {}
+
+    filter_obj, applied_favorite = get_effective_transaction_filter(request, db_session)
+
+    assert filter_obj.symbol is None
+    assert filter_obj.account_id is None
+    assert applied_favorite is None
+
+
+def test_get_effective_filter_sort_only_applies_favorite(db_session: Session):
+    """Sort params alone should still allow favorite to apply."""
+    favorite = SavedFilter(
+        name="Favorite",
+        page="transactions",
+        filter_json="symbol=GOOG",
+        is_favorite=True,
+    )
+    db_session.add(favorite)
+    db_session.commit()
+
+    request = MagicMock()
+    request.query_params = {"sort_by": "symbol", "sort_dir": "asc"}
+
+    filter_obj, applied_favorite = get_effective_transaction_filter(request, db_session)
+
+    assert filter_obj.symbol == "GOOG"
+    assert applied_favorite is not None

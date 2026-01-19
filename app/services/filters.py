@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 
 from sqlalchemy import desc, or_
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import Query, Session
 
-from app.models import TradeLot, Transaction
+from app.models import SavedFilter, TradeLot, Transaction
 from app.models.tag import transaction_tags
+from app.services.saved_filter_service import get_favorite_filter
 from app.utils.query_params import parse_bool_param, parse_date_param, parse_int_param
 
 if TYPE_CHECKING:
@@ -207,3 +208,23 @@ def build_filter_from_request(request: "Request") -> TransactionFilter:
         sort_by=get("sort_by") or "trade_date",
         sort_dir=get("sort_dir") or "desc",
     )
+
+
+def get_effective_transaction_filter(
+    request: "Request",
+    db: Session,
+) -> tuple[TransactionFilter, SavedFilter | None]:
+    """
+    Build TransactionFilter from request params, or from favorite if no params.
+
+    Returns (filter, applied_favorite) tuple.
+    applied_favorite is None if explicit params were used or no favorite exists.
+    """
+    if has_any_filter_params(request):
+        return build_filter_from_request(request), None
+
+    favorite = get_favorite_filter(db, "transactions")
+    if favorite:
+        return build_filter_from_query_string(favorite.filter_json), favorite
+
+    return TransactionFilter(), None

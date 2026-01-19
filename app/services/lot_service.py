@@ -665,6 +665,23 @@ def match_all(db: Session, account_id: int | None = None) -> dict:
     }
 
 
+def rematch_all(db: Session, account_id: int | None = None) -> dict:
+    """
+    Delete all lots and rebuild from scratch.
+
+    Returns same summary as match_all.
+    """
+    # Delete existing lots
+    query = db.query(TradeLot)
+    if account_id:
+        query = query.filter(TradeLot.account_id == account_id)
+    query.delete(synchronize_session=False)
+    db.commit()
+
+    # Re-run matching
+    return match_all(db, account_id)
+
+
 # --- P/L Calculation ---
 
 

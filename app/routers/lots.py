@@ -132,6 +132,43 @@ def run_auto_match(
     return templates.TemplateResponse("partials/lot_list.html", context)
 
 
+@router.post("/rematch", response_class=HTMLResponse)
+def run_full_rematch(
+    request: Request,
+    db: Session = Depends(get_db),
+    account_id: int | None = Form(None),
+):
+    """Delete all lots and rebuild from scratch."""
+    result = lot_service.rematch_all(db, account_id)
+
+    # Build filter object
+    filters = LotFilter(account_id=account_id)
+    lots, total = lot_service.get_all_lots(db, filters)
+    summary = lot_service.get_pl_summary(db, account_id)
+    symbols = lot_service.get_unique_symbols(db)
+    accounts = account_service.get_all_accounts(db)
+
+    context = {
+        "request": request,
+        "lots": lots,
+        "summary": summary,
+        "symbols": symbols,
+        "accounts": accounts,
+        "filters": {
+            "account_id": account_id,
+            "symbol": None,
+            "instrument_type": None,
+            "is_closed": None,
+        },
+        "page": 1,
+        "total_pages": (total + 49) // 50,
+        "total": total,
+        "match_result": result,
+    }
+
+    return templates.TemplateResponse("partials/lot_list.html", context)
+
+
 @router.delete("/{lot_id}", response_class=HTMLResponse)
 def delete_lot_route(
     lot_id: int,

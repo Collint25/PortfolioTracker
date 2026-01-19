@@ -179,6 +179,122 @@ class TestStockFIFOMatching:
         assert lot.remaining_quantity == Decimal("40")
 
 
+class TestLotCreationRules:
+    """Test when lots should/shouldn't be created."""
+
+    def test_single_open_no_lot(self, db_session, account):
+        """Single open transaction should NOT create a lot."""
+        create_stock_transaction(
+            db_session,
+            account,
+            symbol="AAPL",
+            txn_type="BUY",
+            quantity=Decimal("100"),
+            price=Decimal("150.00"),
+            amount=Decimal("-15000"),
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
+        )
+
+        result = lot_service.match_all(db_session, account.id)
+        db_session.commit()
+
+        lots, _ = lot_service.get_all_lots(db_session)
+        assert len(lots) == 0  # No lot created for single open
+
+    def test_two_opens_creates_lot(self, db_session, account):
+        """Two opens for same position should create a lot."""
+        create_stock_transaction(
+            db_session,
+            account,
+            symbol="AAPL",
+            txn_type="BUY",
+            quantity=Decimal("100"),
+            price=Decimal("150.00"),
+            amount=Decimal("-15000"),
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
+        )
+        create_stock_transaction(
+            db_session,
+            account,
+            symbol="AAPL",
+            txn_type="BUY",
+            quantity=Decimal("50"),
+            price=Decimal("155.00"),
+            amount=Decimal("-7750"),
+            trade_date=date(2025, 1, 20),
+            txn_id=2,
+        )
+
+        result = lot_service.match_all(db_session, account.id)
+        db_session.commit()
+
+        lots, _ = lot_service.get_all_lots(db_session)
+        assert len(lots) == 1
+        lot = lots[0]
+        assert not lot.is_closed  # Still open
+        assert lot.total_opened_quantity == Decimal("150")
+        assert len(lot.legs) == 2  # Both opens linked
+
+    def test_single_open_with_close_creates_lot(self, db_session, account):
+        """One open + one close should create a lot."""
+        create_stock_transaction(
+            db_session,
+            account,
+            symbol="AAPL",
+            txn_type="BUY",
+            quantity=Decimal("100"),
+            price=Decimal("150.00"),
+            amount=Decimal("-15000"),
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
+        )
+        create_stock_transaction(
+            db_session,
+            account,
+            symbol="AAPL",
+            txn_type="SELL",
+            quantity=Decimal("-100"),
+            price=Decimal("160.00"),
+            amount=Decimal("16000"),
+            trade_date=date(2025, 2, 15),
+            txn_id=2,
+        )
+
+        result = lot_service.match_all(db_session, account.id)
+        db_session.commit()
+
+        lots, _ = lot_service.get_all_lots(db_session)
+        assert len(lots) == 1
+        lot = lots[0]
+        assert lot.is_closed
+        assert len(lot.legs) == 2  # One open + one close
+
+    def test_single_option_open_no_lot(self, db_session, account):
+        """Single option open should NOT create a lot (same rule as stocks)."""
+        create_option_transaction(
+            db_session,
+            account,
+            underlying="AAPL",
+            option_type="CALL",
+            strike=Decimal("150"),
+            expiration=date(2025, 3, 21),
+            action="BUY_TO_OPEN",
+            quantity=Decimal("5"),
+            price=Decimal("2.00"),
+            amount=Decimal("-1000"),
+            trade_date=date(2025, 1, 15),
+            txn_id=1,
+        )
+
+        result = lot_service.match_all(db_session, account.id)
+        db_session.commit()
+
+        lots, _ = lot_service.get_all_lots(db_session)
+        assert len(lots) == 0  # No lot for single option open
+
+
 class TestFIFOSimpleMatch:
     """Test simple open/close matching."""
 

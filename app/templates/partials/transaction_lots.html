@@ -1,0 +1,38 @@
+{% if lots %}
+<div class="space-y-2">
+    {% for lot in lots %}
+    <a href="/lots/{{ lot.id }}" class="block p-3 rounded-lg bg-base-200 hover:bg-base-300 transition-colors">
+        <div class="flex justify-between items-center">
+            <div>
+                <span class="font-medium">{{ lot.symbol }}</span>
+                {% if lot.instrument_type == 'OPTION' %}
+                <span class="text-sm text-base-content/60">
+                    ${{ "%.2f"|format(lot.strike_price) }} {{ lot.option_type }}
+                </span>
+                {% else %}
+                <span class="text-sm text-base-content/60">Stock</span>
+                {% endif %}
+                <span class="badge badge-sm ml-2 {% if lot.direction == 'LONG' %}badge-info{% else %}badge-warning{% endif %}">
+                    {{ lot.direction }}
+                </span>
+            </div>
+            <div class="text-right">
+                {% if lot.is_closed %}
+                <span class="font-mono {% if lot.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                    ${{ "%.2f"|format(lot.realized_pl) }}
+                </span>
+                <span class="badge badge-sm badge-success ml-2">Closed</span>
+                {% else %}
+                <span class="badge badge-sm badge-outline">Open</span>
+                {% endif %}
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-base-content/60 text-sm">
+    This transaction is not linked to any open/close pairs.
+    <a href="/lots/" class="link">Run auto-match</a> to link transactions.
+</p>
+{% endif %}

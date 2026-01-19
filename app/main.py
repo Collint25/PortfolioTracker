@@ -5,7 +5,7 @@ from app.logging_config import configure_logging
 from app.routers import (
     accounts,
     comments,
-    linked_trades,
+    lots,
     pages,
     saved_filters,
     sync,
@@ -27,9 +27,7 @@ app.include_router(sync.router, prefix="/sync", tags=["sync"])
 app.include_router(transactions.router, prefix="/transactions", tags=["transactions"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])
 app.include_router(comments.router, prefix="/comments", tags=["comments"])
-app.include_router(
-    linked_trades.router, prefix="/linked-trades", tags=["linked-trades"]
-)
+app.include_router(lots.router, prefix="/lots", tags=["lots"])
 app.include_router(
     saved_filters.router, prefix="/saved-filters", tags=["saved-filters"]
 )

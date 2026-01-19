@@ -1,4 +1,4 @@
-"""Router for linked trades (open/close matching)."""
+"""Router for trade lots (open/close matching)."""
 
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse
@@ -6,8 +6,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services import account_service, linked_trade_service
-from app.services.filters import LinkedTradeFilter, PaginationParams
+from app.services import account_service, lot_service
+from app.services.filters import LotFilter, PaginationParams
 from app.utils.htmx import htmx_response
 from app.utils.query_params import parse_bool_param
 
@@ -16,42 +16,43 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)
-def list_linked_trades(
+def list_lots(
     request: Request,
     db: Session = Depends(get_db),
     account_id: int | None = Query(None),
-    underlying_symbol: str | None = Query(None),
+    symbol: str | None = Query(None),
+    instrument_type: str | None = Query(None),
     is_closed: str | None = Query(None),
     page: int = Query(1, ge=1),
 ):
-    """List all linked trades with filters."""
+    """List all lots with filters."""
     closed_filter = parse_bool_param(is_closed)
 
     # Build filter and pagination objects
-    filters = LinkedTradeFilter(
+    filters = LotFilter(
         account_id=account_id,
-        underlying_symbol=underlying_symbol,
+        symbol=symbol,
+        instrument_type=instrument_type,
         is_closed=closed_filter,
     )
     pagination = PaginationParams(page=page, per_page=50)
 
-    linked_trades, total = linked_trade_service.get_all_linked_trades(
-        db, filters, pagination
-    )
+    lots, total = lot_service.get_all_lots(db, filters, pagination)
 
-    summary = linked_trade_service.get_pl_summary(db, account_id)
-    symbols = linked_trade_service.get_unique_symbols(db)
+    summary = lot_service.get_pl_summary(db, account_id)
+    symbols = lot_service.get_unique_symbols(db)
     accounts = account_service.get_all_accounts(db)
     total_pages = (total + 49) // 50
 
     context = {
-        "linked_trades": linked_trades,
+        "lots": lots,
         "summary": summary,
         "symbols": symbols,
         "accounts": accounts,
         "filters": {
             "account_id": account_id,
-            "underlying_symbol": underlying_symbol,
+            "symbol": symbol,
+            "instrument_type": instrument_type,
             "is_closed": is_closed,
         },
         "page": page,
@@ -62,34 +63,34 @@ def list_linked_trades(
     return htmx_response(
         templates=templates,
         request=request,
-        full_template="linked_trades.html",
-        partial_template="partials/linked_trade_list.html",
+        full_template="lots.html",
+        partial_template="partials/lot_list.html",
         context=context,
     )
 
 
-@router.get("/{linked_trade_id}", response_class=HTMLResponse)
-def linked_trade_detail(
+@router.get("/{lot_id}", response_class=HTMLResponse)
+def lot_detail(
     request: Request,
-    linked_trade_id: int,
+    lot_id: int,
     db: Session = Depends(get_db),
 ):
-    """Show detailed view of a linked trade with all legs."""
-    linked_trade = linked_trade_service.get_linked_trade_by_id(db, linked_trade_id)
-    if not linked_trade:
+    """Show detailed view of a lot with all legs."""
+    lot = lot_service.get_lot_by_id(db, lot_id)
+    if not lot:
         from fastapi import HTTPException
 
-        raise HTTPException(status_code=404, detail="Linked trade not found")
+        raise HTTPException(status_code=404, detail="Lot not found")
 
     context = {
-        "linked_trade": linked_trade,
+        "lot": lot,
     }
 
     return htmx_response(
         templates=templates,
         request=request,
-        full_template="linked_trade_detail.html",
-        partial_template="partials/linked_trade_detail_content.html",
+        full_template="lot_detail.html",
+        partial_template="partials/lot_detail_content.html",
         context=context,
     )
 
@@ -101,24 +102,25 @@ def run_auto_match(
     account_id: int | None = Form(None),
 ):
     """Run FIFO auto-matching on all unlinked transactions."""
-    result = linked_trade_service.auto_match_all(db, account_id)
+    result = lot_service.auto_match_all(db, account_id)
 
     # Build filter object
-    filters = LinkedTradeFilter(account_id=account_id)
-    linked_trades, total = linked_trade_service.get_all_linked_trades(db, filters)
-    summary = linked_trade_service.get_pl_summary(db, account_id)
-    symbols = linked_trade_service.get_unique_symbols(db)
+    filters = LotFilter(account_id=account_id)
+    lots, total = lot_service.get_all_lots(db, filters)
+    summary = lot_service.get_pl_summary(db, account_id)
+    symbols = lot_service.get_unique_symbols(db)
     accounts = account_service.get_all_accounts(db)
 
     context = {
         "request": request,
-        "linked_trades": linked_trades,
+        "lots": lots,
         "summary": summary,
         "symbols": symbols,
         "accounts": accounts,
         "filters": {
             "account_id": account_id,
-            "underlying_symbol": None,
+            "symbol": None,
+            "instrument_type": None,
             "is_closed": None,
         },
         "page": 1,
@@ -127,37 +129,33 @@ def run_auto_match(
         "match_result": result,
     }
 
-    return templates.TemplateResponse("partials/linked_trade_list.html", context)
+    return templates.TemplateResponse("partials/lot_list.html", context)
 
 
-@router.delete("/{linked_trade_id}", response_class=HTMLResponse)
-def delete_linked_trade_route(
-    linked_trade_id: int,
+@router.delete("/{lot_id}", response_class=HTMLResponse)
+def delete_lot_route(
+    lot_id: int,
     db: Session = Depends(get_db),
 ):
-    """Delete a linked trade (unlink transactions)."""
-    linked_trade_service.delete_linked_trade(db, linked_trade_id)
+    """Delete a lot (unlink transactions)."""
+    lot_service.delete_lot(db, lot_id)
     # Return empty response for HTMX to remove the row
     return HTMLResponse(content="", status_code=200)
 
 
 @router.get("/transaction/{transaction_id}", response_class=HTMLResponse)
-def get_transaction_links(
+def get_transaction_lots(
     request: Request,
     transaction_id: int,
     db: Session = Depends(get_db),
 ):
-    """Get linked trades for a specific transaction (for embedding in detail page)."""
-    linked_trades = linked_trade_service.get_linked_trades_for_transaction(
-        db, transaction_id
-    )
+    """Get lots for a specific transaction (for embedding in detail page)."""
+    lots = lot_service.get_lots_for_transaction(db, transaction_id)
 
     context = {
         "request": request,
-        "linked_trades": linked_trades,
+        "lots": lots,
         "transaction_id": transaction_id,
     }
 
-    return templates.TemplateResponse(
-        "partials/transaction_linked_trades.html", context
-    )
+    return templates.TemplateResponse("partials/transaction_lots.html", context)

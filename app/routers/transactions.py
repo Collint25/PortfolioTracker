@@ -15,6 +15,7 @@ from app.services import (
 )
 from app.services.filters import (
     PaginationParams,
+    TransactionFilter,
     get_effective_transaction_filter,
 )
 from app.utils.htmx import htmx_response, is_htmx_request
@@ -23,46 +24,47 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
-def build_filter_query_string(
-    search: str | None,
-    account_id: int | None,
-    symbol: str | None,
-    type: str | None,
-    tag_id: int | None,
-    start_date: str | None,
-    end_date: str | None,
-    is_option: str | None,
-    option_type: str | None,
-    option_action: str | None,
-    sort_by: str,
-    sort_dir: str,
-) -> str:
+def build_filter_query_string(filters: TransactionFilter) -> str:
     """Build a URL query string from filter parameters."""
-    params: dict[str, str] = {}
-    if search:
-        params["search"] = search
-    if account_id:
-        params["account_id"] = str(account_id)
-    if symbol:
-        params["symbol"] = symbol
-    if type:
-        params["type"] = type
-    if tag_id:
-        params["tag_id"] = str(tag_id)
-    if start_date:
-        params["start_date"] = str(start_date)
-    if end_date:
-        params["end_date"] = str(end_date)
-    if is_option:
-        params["is_option"] = is_option
-    if option_type:
-        params["option_type"] = option_type
-    if option_action:
-        params["option_action"] = option_action
-    if sort_by and sort_by != "trade_date":
-        params["sort_by"] = sort_by
-    if sort_dir and sort_dir != "desc":
-        params["sort_dir"] = sort_dir
+    params: list[tuple[str, str]] = []
+
+    if filters.symbols:
+        for sym in filters.symbols:
+            params.append(("symbol", sym))
+        if filters.symbol_mode != "include":
+            params.append(("symbol_mode", filters.symbol_mode))
+
+    if filters.types:
+        for t in filters.types:
+            params.append(("type", t))
+        if filters.type_mode != "include":
+            params.append(("type_mode", filters.type_mode))
+
+    if filters.tag_ids:
+        for tid in filters.tag_ids:
+            params.append(("tag_id", str(tid)))
+        if filters.tag_mode != "include":
+            params.append(("tag_mode", filters.tag_mode))
+
+    if filters.account_id:
+        params.append(("account_id", str(filters.account_id)))
+    if filters.start_date:
+        params.append(("start_date", str(filters.start_date)))
+    if filters.end_date:
+        params.append(("end_date", str(filters.end_date)))
+    if filters.search:
+        params.append(("search", filters.search))
+    if filters.is_option is not None:
+        params.append(("is_option", str(filters.is_option).lower()))
+    if filters.option_type:
+        params.append(("option_type", filters.option_type))
+    if filters.option_action:
+        params.append(("option_action", filters.option_action))
+    if filters.sort_by and filters.sort_by != "trade_date":
+        params.append(("sort_by", filters.sort_by))
+    if filters.sort_dir and filters.sort_dir != "desc":
+        params.append(("sort_dir", filters.sort_dir))
+
     return urlencode(params)
 
 
@@ -82,8 +84,6 @@ def list_transactions(
         if favorite:
             saved_filter_service.clear_favorite(db, favorite.id)
         # Use default filters, no favorite applied
-        from app.services.filters import TransactionFilter
-
         filters = TransactionFilter()
         applied_favorite = None
     else:
@@ -107,22 +107,7 @@ def list_transactions(
     option_actions = transaction_service.get_unique_option_actions(db)
 
     # Build query string for saved filters and table links
-    filter_query_string = build_filter_query_string(
-        search=filters.search,
-        account_id=filters.account_id,
-        symbol=filters.symbol,
-        type=filters.transaction_type,
-        tag_id=filters.tag_id,
-        start_date=str(filters.start_date) if filters.start_date else None,
-        end_date=str(filters.end_date) if filters.end_date else None,
-        is_option=(
-            str(filters.is_option).lower() if filters.is_option is not None else None
-        ),
-        option_type=filters.option_type,
-        option_action=filters.option_action,
-        sort_by=filters.sort_by,
-        sort_dir=filters.sort_dir,
-    )
+    filter_query_string = build_filter_query_string(filters)
 
     # Get saved filters for this page
     saved_filters = saved_filter_service.get_filters_for_page(db, "transactions")
@@ -142,11 +127,15 @@ def list_transactions(
         "saved_filters": saved_filters,
         "filter_query_string": filter_query_string,
         "applied_favorite": applied_favorite,
-        # Current filter values for form
+        # Current filter values for form (now lists for multi-select fields)
+        "current_symbols": filters.symbols or [],
+        "current_symbol_mode": filters.symbol_mode,
+        "current_types": filters.types or [],
+        "current_type_mode": filters.type_mode,
+        "current_tag_ids": filters.tag_ids or [],
+        "current_tag_mode": filters.tag_mode,
+        # Keep these for unchanged filters
         "current_account_id": filters.account_id,
-        "current_symbol": filters.symbol,
-        "current_type": filters.transaction_type,
-        "current_tag_id": filters.tag_id,
         "current_start_date": filters.start_date,
         "current_end_date": filters.end_date,
         "current_search": filters.search,

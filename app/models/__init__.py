@@ -9,6 +9,10 @@ from app.models.tag import Tag, transaction_tags
 from app.models.trade_lot import TradeLot
 from app.models.transaction import Transaction
 
+# Backwards compatibility aliases (to be removed in Task 11)
+LinkedTrade = TradeLot
+LinkedTradeLeg = LotTransaction
+
 __all__ = [
     "Base",
     "Account",
@@ -21,4 +25,7 @@ __all__ = [
     "LotTransaction",
     "SavedFilter",
     "transaction_tags",
+    # Backwards compatibility (to be removed in Task 11)
+    "LinkedTrade",
+    "LinkedTradeLeg",
 ]

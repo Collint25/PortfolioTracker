@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.models import Account, Base, Transaction
 from app.services import lot_service
-from app.services.lot_service import OptionKey, StockKey
+from app.services.lot_service import OptionKey
 
 
 @pytest.fixture
@@ -129,7 +129,7 @@ class TestStockFIFOMatching:
             txn_id=2,
         )
 
-        result = lot_service.match_all(db_session, account.id)
+        lot_service.match_all(db_session, account.id)
         db_session.commit()
 
         lots, _ = lot_service.get_all_lots(db_session)
@@ -166,7 +166,7 @@ class TestStockFIFOMatching:
             txn_id=2,
         )
 
-        result = lot_service.match_all(db_session, account.id)
+        lot_service.match_all(db_session, account.id)
         db_session.commit()
 
         lots, _ = lot_service.get_all_lots(db_session)
@@ -196,7 +196,7 @@ class TestLotCreationRules:
             txn_id=1,
         )
 
-        result = lot_service.match_all(db_session, account.id)
+        lot_service.match_all(db_session, account.id)
         db_session.commit()
 
         lots, _ = lot_service.get_all_lots(db_session)
@@ -227,7 +227,7 @@ class TestLotCreationRules:
             txn_id=2,
         )
 
-        result = lot_service.match_all(db_session, account.id)
+        lot_service.match_all(db_session, account.id)
         db_session.commit()
 
         lots, _ = lot_service.get_all_lots(db_session)
@@ -262,7 +262,7 @@ class TestLotCreationRules:
             txn_id=2,
         )
 
-        result = lot_service.match_all(db_session, account.id)
+        lot_service.match_all(db_session, account.id)
         db_session.commit()
 
         lots, _ = lot_service.get_all_lots(db_session)
@@ -288,7 +288,7 @@ class TestLotCreationRules:
             txn_id=1,
         )
 
-        result = lot_service.match_all(db_session, account.id)
+        lot_service.match_all(db_session, account.id)
         db_session.commit()
 
         lots, _ = lot_service.get_all_lots(db_session)
@@ -539,7 +539,12 @@ class TestCrossAccountNoMatch:
     """Test that different accounts don't match."""
 
     def test_cross_account_no_match(self, db_session, account):
-        """Transactions in different accounts should not link."""
+        """Transactions in different accounts should not link.
+
+        With new lot creation rules: single open in account 1 with no closes
+        (the close is in account 2) means no lot is created for account 1.
+        This confirms cross-account isolation works correctly.
+        """
         # Create second account
         account2 = Account(
             snaptrade_id="test-account-2",
@@ -596,9 +601,8 @@ class TestCrossAccountNoMatch:
         linked_trades = lot_service.auto_match_contract(db_session, contract)
         db_session.commit()
 
-        # Should create 1 linked trade that's NOT closed (no matching close in account 1)
-        assert len(linked_trades) == 1
-        assert not linked_trades[0].is_closed
+        # Single open with no closes (close is in different account) = no lot created
+        assert len(linked_trades) == 0
 
 
 class TestPLCalculation:
@@ -647,9 +651,7 @@ class TestPLCalculation:
         db_session.commit()
 
         # Calculate P/L
-        pl = lot_service.calculate_linked_trade_pl(
-            db_session, linked_trades[0].id
-        )
+        pl = lot_service.calculate_linked_trade_pl(db_session, linked_trades[0].id)
 
         # Should be profit: -200 + 300 = 100
         assert pl == Decimal("100")
@@ -658,8 +660,12 @@ class TestPLCalculation:
 class TestOrphanHandling:
     """Test handling of unmatched transactions."""
 
-    def test_open_without_close(self, db_session, account):
-        """Open position without close should remain open."""
+    def test_single_open_without_close_no_lot(self, db_session, account):
+        """Single open position without close should NOT create a lot.
+
+        This is the new behavior: lots are only created when there's
+        something to link (2+ opens or any close exists).
+        """
         create_option_transaction(
             db_session,
             account,
@@ -685,8 +691,5 @@ class TestOrphanHandling:
         linked_trades = lot_service.auto_match_contract(db_session, contract)
         db_session.commit()
 
-        assert len(linked_trades) == 1
-        lt = linked_trades[0]
-        assert not lt.is_closed
-        assert lt.total_opened_quantity == Decimal("5")
-        assert lt.total_closed_quantity == Decimal("0")
+        # Single open with no closes = no lot created (new behavior)
+        assert len(linked_trades) == 0

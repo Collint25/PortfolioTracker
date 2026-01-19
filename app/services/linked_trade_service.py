@@ -61,9 +61,9 @@ def get_linked_trade_by_id(db: Session, linked_trade_id: int) -> LinkedTrade | N
 def get_unique_symbols(db: Session) -> list[str]:
     """Get all unique underlying symbols from linked trades."""
     results = (
-        db.query(LinkedTrade.underlying_symbol)
+        db.query(LinkedTrade.symbol)
         .distinct()
-        .order_by(LinkedTrade.underlying_symbol)
+        .order_by(LinkedTrade.symbol)
         .all()
     )
     return [r[0] for r in results if r[0]]
@@ -258,7 +258,8 @@ def _create_linked_trade(
     """Create a new LinkedTrade for the contract."""
     linked_trade = LinkedTrade(
         account_id=contract_key.account_id,
-        underlying_symbol=contract_key.underlying_symbol,
+        instrument_type="OPTION",  # Old service only handled options
+        symbol=contract_key.underlying_symbol,  # TradeLot uses 'symbol' not 'underlying_symbol'
         option_type=contract_key.option_type,
         strike_price=contract_key.strike_price,
         expiration_date=contract_key.expiration_date,

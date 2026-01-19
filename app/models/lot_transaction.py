@@ -25,6 +25,12 @@ class LotTransaction(Base, TimestampMixin):
         ForeignKey("transactions.id"), index=True
     )
 
+    # Backwards compatibility: accept linked_trade_id as alias for lot_id
+    def __init__(self, **kwargs: object) -> None:
+        if "linked_trade_id" in kwargs:
+            kwargs["lot_id"] = kwargs.pop("linked_trade_id")
+        super().__init__(**kwargs)
+
     # How many shares/contracts from this transaction allocated to this lot
     allocated_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 8))
 
@@ -37,9 +43,7 @@ class LotTransaction(Base, TimestampMixin):
 
     # Relationships
     trade_lot: Mapped["TradeLot"] = relationship(back_populates="legs")
-    transaction: Mapped["Transaction"] = relationship(
-        back_populates="lot_transactions"
-    )
+    transaction: Mapped["Transaction"] = relationship(back_populates="lot_transactions")
 
     @property
     def cash_impact(self) -> Decimal:

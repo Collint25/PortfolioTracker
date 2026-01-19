@@ -26,6 +26,11 @@ class TradeLot(Base, TimestampMixin):
     # Symbol (ticker for stocks, underlying for options)
     symbol: Mapped[str] = mapped_column(String(20), index=True)
 
+    @property
+    def underlying_symbol(self) -> str:
+        """Alias for symbol (backwards compatibility, to be removed in Task 11)."""
+        return self.symbol
+
     # Option-specific (NULL for stocks)
     option_type: Mapped[str | None] = mapped_column(String(10))  # CALL, PUT
     strike_price: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))

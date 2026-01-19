@@ -115,7 +115,7 @@ def apply_linked_trade_filters(query: Query, filters: LinkedTradeFilter) -> Quer
         query = query.filter(LinkedTrade.account_id == filters.account_id)
 
     if filters.underlying_symbol is not None:
-        query = query.filter(LinkedTrade.underlying_symbol == filters.underlying_symbol)
+        query = query.filter(LinkedTrade.symbol == filters.underlying_symbol)
 
     if filters.is_closed is not None:
         query = query.filter(LinkedTrade.is_closed == filters.is_closed)

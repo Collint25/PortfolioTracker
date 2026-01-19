@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from app.logging_config import configure_logging
 from app.routers import (
     accounts,
+    api,
     comments,
     lots,
     pages,
@@ -31,6 +32,7 @@ app.include_router(lots.router, prefix="/lots", tags=["lots"])
 app.include_router(
     saved_filters.router, prefix="/saved-filters", tags=["saved-filters"]
 )
+app.include_router(api.router, prefix="/api", tags=["api"])
 
 
 @app.get("/health")

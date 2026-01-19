@@ -22,9 +22,14 @@ class TransactionFilter:
     """Filter criteria for transaction queries."""
 
     account_id: int | None = None
-    symbol: str | None = None
-    transaction_type: str | None = None
-    tag_id: int | None = None
+    # Multi-select fields with include/exclude mode
+    symbols: list[str] | None = None
+    symbol_mode: str = "include"  # "include" or "exclude"
+    types: list[str] | None = None
+    type_mode: str = "include"
+    tag_ids: list[int] | None = None
+    tag_mode: str = "include"
+    # Single-value fields
     start_date: date | None = None
     end_date: date | None = None
     search: str | None = None
@@ -62,17 +67,33 @@ def apply_transaction_filters(query: Query, filters: TransactionFilter) -> Query
     if filters.account_id is not None:
         query = query.filter(Transaction.account_id == filters.account_id)
 
-    if filters.symbol:
-        # Search in both symbol and underlying_symbol for options
-        query = query.filter(
-            or_(
-                Transaction.symbol == filters.symbol,
-                Transaction.underlying_symbol == filters.symbol,
+    # Symbols (multi-select with mode)
+    if filters.symbols:
+        if filters.symbol_mode == "exclude":
+            # For exclude, need to handle NULLs properly
+            # NOT IN returns NULL when comparing to NULL, so exclude explicitly
+            query = query.filter(
+                Transaction.symbol.notin_(filters.symbols),
+                or_(
+                    Transaction.underlying_symbol.is_(None),
+                    Transaction.underlying_symbol.notin_(filters.symbols),
+                ),
             )
-        )
+        else:
+            # Include: match if symbol OR underlying_symbol is in list
+            query = query.filter(
+                or_(
+                    Transaction.symbol.in_(filters.symbols),
+                    Transaction.underlying_symbol.in_(filters.symbols),
+                )
+            )
 
-    if filters.transaction_type:
-        query = query.filter(Transaction.type == filters.transaction_type)
+    # Types (multi-select with mode)
+    if filters.types:
+        if filters.type_mode == "exclude":
+            query = query.filter(Transaction.type.notin_(filters.types))
+        else:
+            query = query.filter(Transaction.type.in_(filters.types))
 
     if filters.start_date:
         query = query.filter(Transaction.trade_date >= filters.start_date)
@@ -90,10 +111,21 @@ def apply_transaction_filters(query: Query, filters: TransactionFilter) -> Query
             )
         )
 
-    if filters.tag_id is not None:
-        query = query.join(transaction_tags).filter(
-            transaction_tags.c.tag_id == filters.tag_id
-        )
+    # Tag IDs (multi-select with mode)
+    if filters.tag_ids:
+        if filters.tag_mode == "exclude":
+            # Exclude transactions that have ANY of these tags
+            subquery = (
+                query.session.query(transaction_tags.c.transaction_id)
+                .filter(transaction_tags.c.tag_id.in_(filters.tag_ids))
+                .distinct()
+            )
+            query = query.filter(Transaction.id.notin_(subquery))
+        else:
+            # Include transactions that have ANY of these tags
+            query = query.join(transaction_tags).filter(
+                transaction_tags.c.tag_id.in_(filters.tag_ids)
+            )
 
     if filters.is_option is not None:
         query = query.filter(Transaction.is_option == filters.is_option)
@@ -143,8 +175,11 @@ def apply_pagination(query: Query, pagination: PaginationParams) -> Query:
 TRANSACTION_FILTER_PARAMS = [
     "account_id",
     "symbol",
+    "symbol_mode",
     "type",
+    "type_mode",
     "tag_id",
+    "tag_mode",
     "start_date",
     "end_date",
     "search",
@@ -164,18 +199,35 @@ def build_filter_from_query_string(query_string: str) -> TransactionFilter:
     if not query_string:
         return TransactionFilter()
 
-    # parse_qs returns lists, extract single values
     parsed = parse_qs(query_string)
 
     def get_single(key: str) -> str | None:
         values = parsed.get(key, [])
         return values[0] if values else None
 
+    def get_list(key: str) -> list[str] | None:
+        values = parsed.get(key, [])
+        return values if values else None
+
+    def get_int_list(key: str) -> list[int] | None:
+        values = parsed.get(key, [])
+        if not values:
+            return None
+        result = []
+        for v in values:
+            parsed_int = parse_int_param(v)
+            if parsed_int is not None:
+                result.append(parsed_int)
+        return result if result else None
+
     return TransactionFilter(
         account_id=parse_int_param(get_single("account_id")),
-        symbol=get_single("symbol") or None,
-        transaction_type=get_single("type") or None,
-        tag_id=parse_int_param(get_single("tag_id")),
+        symbols=get_list("symbol"),
+        symbol_mode=get_single("symbol_mode") or "include",
+        types=get_list("type"),
+        type_mode=get_single("type_mode") or "include",
+        tag_ids=get_int_list("tag_id"),
+        tag_mode=get_single("tag_mode") or "include",
         start_date=parse_date_param(get_single("start_date")),
         end_date=parse_date_param(get_single("end_date")),
         search=get_single("search") or None,
@@ -194,11 +246,29 @@ def build_filter_from_request(request: "Request") -> TransactionFilter:
     def get(key: str) -> str | None:
         return params.get(key) or None
 
+    def get_list(key: str) -> list[str] | None:
+        values = params.getlist(key)
+        return values if values else None
+
+    def get_int_list(key: str) -> list[int] | None:
+        values = params.getlist(key)
+        if not values:
+            return None
+        result = []
+        for v in values:
+            parsed_int = parse_int_param(v)
+            if parsed_int is not None:
+                result.append(parsed_int)
+        return result if result else None
+
     return TransactionFilter(
         account_id=parse_int_param(get("account_id")),
-        symbol=get("symbol"),
-        transaction_type=get("type"),
-        tag_id=parse_int_param(get("tag_id")),
+        symbols=get_list("symbol"),
+        symbol_mode=get("symbol_mode") or "include",
+        types=get_list("type"),
+        type_mode=get("type_mode") or "include",
+        tag_ids=get_int_list("tag_id"),
+        tag_mode=get("tag_mode") or "include",
         start_date=parse_date_param(get("start_date")),
         end_date=parse_date_param(get("end_date")),
         search=get("search"),

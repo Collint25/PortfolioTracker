@@ -2,23 +2,27 @@
 
 {% block content %}
 <div class="mb-4">
-    <a href="/linked-trades/" class="btn btn-ghost btn-sm">← Back to Linked Trades</a>
+    <a href="/lots/" class="btn btn-ghost btn-sm">← Back to Lots</a>
 </div>
 
 <div class="flex justify-between items-start mb-6">
     <div>
-        <h1 class="text-3xl font-bold">{{ linked_trade.underlying_symbol }}</h1>
+        <h1 class="text-3xl font-bold">{{ lot.symbol }}</h1>
+        {% if lot.instrument_type == 'OPTION' %}
         <p class="text-lg text-base-content/70">
-            ${{ "%.2f"|format(linked_trade.strike_price) }}
-            {{ linked_trade.option_type }}
-            exp {{ linked_trade.expiration_date.strftime('%m/%d/%Y') }}
+            ${{ "%.2f"|format(lot.strike_price) }}
+            {{ lot.option_type }}
+            exp {{ lot.expiration_date.strftime('%m/%d/%Y') }}
         </p>
+        {% else %}
+        <p class="text-lg text-base-content/70">Stock</p>
+        {% endif %}
     </div>
     <div class="flex gap-2">
-        <span class="badge badge-lg {% if linked_trade.direction == 'LONG' %}badge-info{% else %}badge-warning{% endif %}">
-            {{ linked_trade.direction }}
+        <span class="badge badge-lg {% if lot.direction == 'LONG' %}badge-info{% else %}badge-warning{% endif %}">
+            {{ lot.direction }}
         </span>
-        {% if linked_trade.is_closed %}
+        {% if lot.is_closed %}
         <span class="badge badge-lg badge-success">Closed</span>
         {% else %}
         <span class="badge badge-lg badge-outline">Open</span>
@@ -30,23 +34,23 @@
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="stat bg-base-100 shadow rounded-lg">
         <div class="stat-title">Opened</div>
-        <div class="stat-value text-lg">{{ linked_trade.total_opened_quantity|int }}</div>
-        <div class="stat-desc">contracts</div>
+        <div class="stat-value text-lg">{{ lot.total_opened_quantity|int }}</div>
+        <div class="stat-desc">{{ "contracts" if lot.instrument_type == 'OPTION' else "shares" }}</div>
     </div>
     <div class="stat bg-base-100 shadow rounded-lg">
         <div class="stat-title">Closed</div>
-        <div class="stat-value text-lg">{{ linked_trade.total_closed_quantity|int }}</div>
-        <div class="stat-desc">contracts</div>
+        <div class="stat-value text-lg">{{ lot.total_closed_quantity|int }}</div>
+        <div class="stat-desc">{{ "contracts" if lot.instrument_type == 'OPTION' else "shares" }}</div>
     </div>
     <div class="stat bg-base-100 shadow rounded-lg">
         <div class="stat-title">Remaining</div>
-        <div class="stat-value text-lg">{{ linked_trade.remaining_quantity|int }}</div>
-        <div class="stat-desc">contracts</div>
+        <div class="stat-value text-lg">{{ lot.remaining_quantity|int }}</div>
+        <div class="stat-desc">{{ "contracts" if lot.instrument_type == 'OPTION' else "shares" }}</div>
     </div>
     <div class="stat bg-base-100 shadow rounded-lg">
         <div class="stat-title">Realized P/L</div>
-        <div class="stat-value text-lg {% if linked_trade.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
-            ${{ "%.2f"|format(linked_trade.realized_pl) }}
+        <div class="stat-value text-lg {% if lot.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+            ${{ "%.2f"|format(lot.realized_pl) }}
         </div>
     </div>
 </div>
@@ -68,7 +72,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for leg in linked_trade.legs %}
+                    {% for leg in lot.legs %}
                     <tr class="hover">
                         <td>{{ leg.trade_date.strftime('%Y-%m-%d') }}</td>
                         <td>
@@ -94,8 +98,8 @@
                 <tfoot>
                     <tr class="font-bold">
                         <td colspan="5" class="text-right">Total P/L:</td>
-                        <td class="text-right font-mono {% if linked_trade.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
-                            ${{ "%.2f"|format(linked_trade.realized_pl) }}
+                        <td class="text-right font-mono {% if lot.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                            ${{ "%.2f"|format(lot.realized_pl) }}
                         </td>
                     </tr>
                 </tfoot>
@@ -105,11 +109,11 @@
 </div>
 
 <!-- Notes -->
-{% if linked_trade.notes %}
+{% if lot.notes %}
 <div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
         <h2 class="card-title">Notes</h2>
-        <p>{{ linked_trade.notes }}</p>
+        <p>{{ lot.notes }}</p>
     </div>
 </div>
 {% endif %}
@@ -120,11 +124,13 @@
         <h2 class="card-title text-sm">Details</h2>
         <div class="grid grid-cols-2 gap-2 text-sm">
             <div class="text-base-content/60">Account:</div>
-            <div>{{ linked_trade.account.name }}</div>
+            <div>{{ lot.account.name }}</div>
+            <div class="text-base-content/60">Instrument:</div>
+            <div>{{ lot.instrument_type }}</div>
             <div class="text-base-content/60">Auto-matched:</div>
-            <div>{{ "Yes" if linked_trade.is_auto_matched else "No" }}</div>
+            <div>{{ "Yes" if lot.is_auto_matched else "No" }}</div>
             <div class="text-base-content/60">Created:</div>
-            <div>{{ linked_trade.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+            <div>{{ lot.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
         </div>
     </div>
 </div>

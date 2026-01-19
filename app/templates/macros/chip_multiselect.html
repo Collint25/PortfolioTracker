@@ -1,0 +1,89 @@
+{% macro chip_multiselect(name, label, values, selected, mode=None, autocomplete_url=None, options=None, width="w-48") %}
+{#
+  Chip-based multi-select component.
+
+  Args:
+    name: Field name for form submission (e.g., "symbol")
+    label: Display label (e.g., "Symbol")
+    values: Currently selected values (list)
+    selected: Alias for values (backward compat)
+    mode: Deprecated, kept for backward compat
+    autocomplete_url: URL for autocomplete (for symbol field)
+    options: Static list of options (for type/tag fields)
+    width: Tailwind width class (default: w-48)
+#}
+{% set selected_values = values or selected or [] %}
+{% if options %}
+  {# Build lookup dict: value -> label #}
+  {% set value_to_label = {} %}
+  {% for opt in options %}
+    {% set opt_value = (opt.value if opt.value is defined else opt)|string %}
+    {% set opt_label = opt.label if opt.label is defined else opt %}
+    {% set _ = value_to_label.update({opt_value: opt_label}) %}
+  {% endfor %}
+{% endif %}
+<div class="form-control {{ width }}" data-multiselect="{{ name }}">
+  <label class="label py-1"><span class="label-text text-xs">{{ label }}</span></label>
+  {% if options %}
+  {# Dropdown variant: entire box is clickable #}
+  <div class="dropdown w-full">
+    <div tabindex="0" class="flex flex-wrap gap-1 p-2 border rounded-lg border-base-300 bg-base-100 min-h-[2rem] items-center cursor-pointer hover:border-base-content/30">
+      {# Render existing chips with labels from options lookup #}
+      {% for val in selected_values %}
+      {% set display_label = value_to_label.get(val|string, val) %}
+      <span class="badge badge-sm badge-primary gap-0.5 chip" data-value="{{ val }}">
+        {{ display_label }}
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault(); event.stopPropagation();" onclick="event.stopPropagation(); removeChip(this)" class="ml-0.5 hover:text-primary-content/50">&times;</button>
+        <input type="hidden" name="{{ name }}" value="{{ val }}" />
+      </span>
+      {% endfor %}
+      <span class="text-sm text-base-content/50 whitespace-nowrap add-indicator">+</span>
+    </div>
+    <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-full max-h-60 overflow-y-auto">
+      {% for opt in options %}
+      {% set opt_value = (opt.value if opt.value is defined else opt)|string %}
+      {% set opt_label = opt.label if opt.label is defined else opt %}
+      {# Only show options not already selected #}
+      {% if opt_value not in selected_values|map('string')|list %}
+      <li data-option-value="{{ opt_value }}">
+        <a onclick="addChip('{{ name }}', '{{ opt_value }}', '{{ opt_label }}', this)">
+          {{ opt_label }}
+        </a>
+      </li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+  {% elif autocomplete_url %}
+  {# Autocomplete variant: text input #}
+  <div class="flex flex-wrap gap-1 p-2 border rounded-lg border-base-300 bg-base-100 min-h-[2rem] items-center">
+    {% for val in selected_values %}
+    <span class="badge badge-sm badge-primary gap-0.5 chip" data-value="{{ val }}">
+      {{ val }}
+      <button type="button" onclick="removeChip(this)" class="ml-0.5 hover:text-primary-content/50">&times;</button>
+      <input type="hidden" name="{{ name }}" value="{{ val }}" />
+    </span>
+    {% endfor %}
+    <input
+      type="text"
+      class="flex-1 min-w-[60px] bg-transparent outline-none text-sm chip-input"
+      placeholder="{{ 'Add...' if selected_values else label + '...' }}"
+      data-autocomplete="{{ autocomplete_url }}"
+      data-name="{{ name }}"
+      autocomplete="off"
+    />
+  </div>
+  {% else %}
+  {# Fallback: no options or autocomplete #}
+  <div class="flex flex-wrap gap-1 p-2 border rounded-lg border-base-300 bg-base-100 min-h-[2rem] items-center">
+    {% for val in selected_values %}
+    <span class="badge badge-sm badge-primary gap-0.5 chip" data-value="{{ val }}">
+      {{ val }}
+      <button type="button" onclick="removeChip(this)" class="ml-0.5 hover:text-primary-content/50">&times;</button>
+      <input type="hidden" name="{{ name }}" value="{{ val }}" />
+    </span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}

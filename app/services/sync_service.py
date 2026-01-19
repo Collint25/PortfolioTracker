@@ -4,7 +4,8 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from app.models import Account, Position, Transaction
+from app.models import Account, Position, TradeLot, Transaction
+from app.services import lot_service
 from app.services.snaptrade_client import (
     fetch_accounts,
     get_snaptrade_client,
@@ -33,10 +34,15 @@ def sync_all(db: Session) -> dict[str, int]:
     # Sync transactions
     transaction_count = sync_transactions(db, client, user_id, user_secret)
 
+    # Run lot matching on new transactions
+    match_result = lot_service.match_all(db)
+    lots_created = match_result.get("created", 0)
+
     return {
         "accounts": account_count,
         "positions": position_count,
         "transactions": transaction_count,
+        "lots_created": lots_created,
     }
 
 
@@ -64,6 +70,7 @@ def get_sync_status(db: Session) -> dict[str, int]:
         "accounts": db.query(Account).count(),
         "positions": db.query(Position).count(),
         "transactions": db.query(Transaction).count(),
+        "lots": db.query(TradeLot).count(),
     }
 
 

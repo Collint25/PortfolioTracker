@@ -1,0 +1,104 @@
+<!-- P/L Summary -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Opened</div>
+        <div class="stat-value text-lg">{{ lot.total_opened_quantity|int }}</div>
+        <div class="stat-desc">{{ "contracts" if lot.instrument_type == 'OPTION' else "shares" }}</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Closed</div>
+        <div class="stat-value text-lg">{{ lot.total_closed_quantity|int }}</div>
+        <div class="stat-desc">{{ "contracts" if lot.instrument_type == 'OPTION' else "shares" }}</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Remaining</div>
+        <div class="stat-value text-lg">{{ lot.remaining_quantity|int }}</div>
+        <div class="stat-desc">{{ "contracts" if lot.instrument_type == 'OPTION' else "shares" }}</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-lg">
+        <div class="stat-title">Realized P/L</div>
+        <div class="stat-value text-lg {% if lot.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+            ${{ "%.2f"|format(lot.realized_pl) }}
+        </div>
+    </div>
+</div>
+
+<!-- Legs Table -->
+<div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+        <h2 class="card-title">Trade Legs</h2>
+        <div class="overflow-x-auto">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Action</th>
+                        <th class="text-right">Qty</th>
+                        <th class="text-right">Price</th>
+                        <th class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leg in lot.legs %}
+                    <tr class="hover">
+                        <td>{{ leg.trade_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <span class="badge badge-sm {% if leg.leg_type == 'OPEN' %}badge-primary{% else %}badge-secondary{% endif %}">
+                                {{ leg.leg_type }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if leg.transaction %}
+                            {{ leg.transaction.option_action|replace('_', ' ') if leg.transaction.option_action else leg.transaction.type }}
+                            {% endif %}
+                        </td>
+                        <td class="text-right font-mono">{{ leg.allocated_quantity|int }}</td>
+                        <td class="text-right font-mono">${{ "%.2f"|format(leg.price_per_contract) }}</td>
+                        <td class="text-right font-mono {% if leg.transaction and leg.transaction.amount >= 0 %}text-success{% else %}text-error{% endif %}">
+                            {% if leg.transaction %}
+                            ${{ "%.2f"|format(leg.transaction.amount) }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="font-bold">
+                        <td colspan="5" class="text-right">Total P/L:</td>
+                        <td class="text-right font-mono {% if lot.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                            ${{ "%.2f"|format(lot.realized_pl) }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Notes -->
+{% if lot.notes %}
+<div class="card bg-base-100 shadow mb-6">
+    <div class="card-body">
+        <h2 class="card-title">Notes</h2>
+        <p>{{ lot.notes }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Metadata -->
+<div class="card bg-base-100 shadow">
+    <div class="card-body">
+        <h2 class="card-title text-sm">Details</h2>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="text-base-content/60">Account:</div>
+            <div>{{ lot.account.name }}</div>
+            <div class="text-base-content/60">Instrument:</div>
+            <div>{{ lot.instrument_type }}</div>
+            <div class="text-base-content/60">Auto-matched:</div>
+            <div>{{ "Yes" if lot.is_auto_matched else "No" }}</div>
+            <div class="text-base-content/60">Created:</div>
+            <div>{{ lot.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+        </div>
+    </div>
+</div>

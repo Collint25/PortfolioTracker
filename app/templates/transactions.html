@@ -1,29 +1,187 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-6">
+<!-- Page Header -->
+<div class="flex justify-between items-center mb-4">
     <h1 class="text-3xl font-bold">Transactions</h1>
     <span class="badge badge-lg">{{ total }} total</span>
 </div>
 
-<!-- Saved Filters -->
-<div class="flex flex-wrap items-center gap-3 mb-4">
-    <span class="text-sm font-medium">Saved:</span>
-    <div id="saved-filters">
-        {% set filter_page = "transactions" %}
-        {% include "partials/saved_filter_list.html" %}
-    </div>
-    {% if filter_query_string %}
-    <button
-        class="btn btn-ghost btn-xs"
-        onclick="document.getElementById('save-filter-modal').showModal()"
-    >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Save Current
-    </button>
-    {% endif %}
+<!-- Main Grid: Sidebar + Content -->
+<div class="grid grid-cols-[minmax(200px,25%)_1fr] gap-6">
+    <!-- Sidebar: Filters -->
+    <aside class="sticky top-4 self-start max-h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden">
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-4 space-y-4">
+                <!-- Saved Filters Section -->
+                <div>
+                    <h3 class="text-sm font-semibold mb-2">Saved Filters</h3>
+                    <div id="saved-filters" class="space-y-1">
+                        {% set filter_page = "transactions" %}
+                        {% include "partials/saved_filter_list.html" %}
+                    </div>
+                    <div class="mt-2">
+                        {% include "partials/save_filter_button.html" %}
+                    </div>
+                </div>
+
+                <div class="divider my-0"></div>
+
+                <!-- Filter Form -->
+                <form
+                    id="filter-form"
+                    hx-get="/transactions"
+                    hx-target="#transaction-table"
+                    hx-trigger="filterChanged from:body"
+                    hx-push-url="true"
+                    hx-indicator="#table-loading"
+                    class="space-y-3"
+                >
+                    <!-- Search -->
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-xs">Search</span></label>
+                        <input
+                            type="text"
+                            name="search"
+                            value="{{ current_search or '' }}"
+                            placeholder="Symbol or description"
+                            class="input input-bordered input-sm w-full"
+                            oninput="debouncedFilterChange()"
+                        />
+                    </div>
+
+                    {% from "macros/chip_multiselect.html" import chip_multiselect %}
+
+                    <!-- Type -->
+                    {{ chip_multiselect(
+                        name="type",
+                        label="Type",
+                        values=current_types,
+                        options=types,
+                        width="w-full"
+                    ) }}
+
+                    <!-- Account -->
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-xs">Account</span></label>
+                        <select name="account_id" class="select select-bordered select-sm w-full" onchange="dispatchFilterChanged()">
+                            <option value="">All Accounts</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}" {{ 'selected' if current_account_id == account.id else '' }}>
+                                {{ account.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="divider my-0"></div>
+
+                    <!-- Date Range -->
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-xs">Date Range</span></label>
+                        <div class="flex gap-2">
+                            <input
+                                type="date"
+                                name="start_date"
+                                value="{{ current_start_date or '' }}"
+                                class="input input-bordered input-sm flex-1 min-w-0"
+                                onchange="dispatchFilterChanged()"
+                                title="From"
+                            />
+                            <input
+                                type="date"
+                                name="end_date"
+                                value="{{ current_end_date or '' }}"
+                                class="input input-bordered input-sm flex-1 min-w-0"
+                                onchange="dispatchFilterChanged()"
+                                title="To"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="divider my-0"></div>
+
+                    <!-- Options Filters -->
+                    <div class="space-y-2">
+                        <span class="label-text text-xs font-medium">Options</span>
+
+                        <select name="is_option" class="select select-bordered select-sm w-full" onchange="dispatchFilterChanged()">
+                            <option value="">All (Stocks & Options)</option>
+                            <option value="true" {{ 'selected' if current_is_option == 'true' else '' }}>Options Only</option>
+                            <option value="false" {{ 'selected' if current_is_option == 'false' else '' }}>Stocks Only</option>
+                        </select>
+
+                        <div class="flex gap-2">
+                            <select name="option_type" class="select select-bordered select-sm flex-1 min-w-0" onchange="dispatchFilterChanged()">
+                                <option value="">Call/Put</option>
+                                {% for ot in option_types %}
+                                <option value="{{ ot }}" {{ 'selected' if current_option_type == ot else '' }}>{{ ot }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <select name="option_action" class="select select-bordered select-sm flex-1 min-w-0" onchange="dispatchFilterChanged()">
+                                <option value="">Action</option>
+                                {% for oa in option_actions %}
+                                <option value="{{ oa }}" {{ 'selected' if current_option_action == oa else '' }}>{{ oa.replace('_', ' ') }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <select name="position_type" class="select select-bordered select-sm flex-1 min-w-0" onchange="dispatchFilterChanged()">
+                                <option value="">Long/Short</option>
+                                <option value="LONG" {{ 'selected' if current_position_type == 'LONG' else '' }}>Long</option>
+                                <option value="SHORT" {{ 'selected' if current_position_type == 'SHORT' else '' }}>Short</option>
+                            </select>
+
+                            <select name="action_type" class="select select-bordered select-sm flex-1 min-w-0" onchange="dispatchFilterChanged()">
+                                <option value="">Open/Close</option>
+                                <option value="OPEN" {{ 'selected' if current_action_type == 'OPEN' else '' }}>Open</option>
+                                <option value="CLOSE" {{ 'selected' if current_action_type == 'CLOSE' else '' }}>Close</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="divider my-0"></div>
+
+                    <!-- Tag -->
+                    {% set tag_options = [] %}
+                    {% for tag in tags %}
+                        {% set _ = tag_options.append({'value': tag.id|string, 'label': tag.name}) %}
+                    {% endfor %}
+                    {{ chip_multiselect(
+                        name="tag_id",
+                        label="Tag",
+                        values=current_tag_ids|map('string')|list,
+                        options=tag_options,
+                        width="w-full"
+                    ) }}
+
+                    <!-- Hidden sort fields -->
+                    <input type="hidden" name="sort_by" value="{{ current_sort_by }}" />
+                    <input type="hidden" name="sort_dir" value="{{ current_sort_dir }}" />
+
+                    <!-- Clear All -->
+                    <a href="/transactions?skip_favorite=true" class="btn btn-ghost btn-sm text-error w-full">
+                        Clear All Filters
+                    </a>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content: Transaction Table -->
+    <main>
+        <!-- Loading indicator -->
+        <div id="table-loading" class="htmx-indicator flex justify-center py-4">
+            <span class="loading loading-spinner loading-md"></span>
+        </div>
+
+        <!-- Transaction table -->
+        <div id="transaction-table">
+            {% include "partials/transaction_table.html" %}
+        </div>
+    </main>
 </div>
 
 <!-- Save Filter Modal -->
@@ -31,25 +189,40 @@
     <div class="modal-box">
         <h3 class="font-bold text-lg">Save Current Filters</h3>
         <form
+            id="save-filter-form"
             hx-post="/saved-filters/transactions"
             hx-target="#saved-filters"
             hx-swap="innerHTML"
             class="mt-4"
         >
-            <input type="hidden" name="query_string" value="{{ filter_query_string }}" />
+            <input type="hidden" id="save-filter-query-string" name="query_string" value="{{ filter_query_string }}" />
+
+            <!-- Filter Selection Dropdown -->
             <div class="form-control">
+                <label class="label"><span class="label-text">Save as</span></label>
+                <select id="save-filter-select" class="select select-bordered w-full" onchange="handleFilterSelectChange(this)">
+                    <option value="" data-name="" data-favorite="false">Create New Filter</option>
+                    {% for sf in saved_filters %}
+                    <option value="{{ sf.id }}" data-name="{{ sf.name }}" data-favorite="{{ 'true' if sf.is_favorite else 'false' }}">
+                        Update: {{ sf.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-control mt-2">
                 <label class="label"><span class="label-text">Filter Name</span></label>
-                <input type="text" name="name" class="input input-bordered" placeholder="e.g., Options Only" required />
+                <input type="text" id="save-filter-name" name="name" class="input input-bordered" placeholder="e.g., Options Only" required />
             </div>
             <div class="form-control mt-2">
                 <label class="label cursor-pointer justify-start gap-2">
-                    <input type="checkbox" name="is_favorite" value="true" class="checkbox checkbox-sm" />
+                    <input type="checkbox" id="save-filter-favorite" name="is_favorite" value="true" class="checkbox checkbox-sm" />
                     <span class="label-text">Set as favorite (auto-apply on page load)</span>
                 </label>
             </div>
             <div class="modal-action">
                 <button type="button" class="btn btn-ghost" onclick="document.getElementById('save-filter-modal').close()">Cancel</button>
-                <button type="submit" class="btn btn-primary" onclick="document.getElementById('save-filter-modal').close()">Save</button>
+                <button type="submit" id="save-filter-submit" class="btn btn-primary" onclick="document.getElementById('save-filter-modal').close()">Save</button>
             </div>
         </form>
     </div>
@@ -57,152 +230,211 @@
         <button>close</button>
     </form>
 </dialog>
+{% endblock %}
 
-<!-- Filters -->
-<div class="card bg-base-100 shadow mb-6">
-    <div class="card-body py-4">
-        <form
-            id="filter-form"
-            hx-get="/transactions"
-            hx-target="#transaction-table"
-            hx-trigger="submit, change from:select"
-            hx-push-url="true"
-        >
-            <!-- Primary Filters Row -->
-            <div class="flex flex-wrap gap-3 items-end">
-                <!-- Search -->
-                <div class="form-control w-48">
-                    <label class="label py-1"><span class="label-text text-xs">Search</span></label>
-                    <input
-                        type="text"
-                        name="search"
-                        value="{{ current_search or '' }}"
-                        placeholder="Symbol or description"
-                        class="input input-bordered input-sm"
-                    />
-                </div>
+{% block scripts %}
+<script>
+// Debounce helper
+function debounce(fn, ms) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), ms);
+    };
+}
 
-                <!-- Account -->
-                <div class="form-control w-40">
-                    <label class="label py-1"><span class="label-text text-xs">Account</span></label>
-                    <select name="account_id" class="select select-bordered select-sm">
-                        <option value="">All</option>
-                        {% for account in accounts %}
-                        <option value="{{ account.id }}" {{ 'selected' if current_account_id == account.id else '' }}>
-                            {{ account.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+// Dispatch filter change event
+function dispatchFilterChanged() {
+    document.body.dispatchEvent(new CustomEvent('filterChanged'));
+}
 
-                <!-- Symbol -->
-                <div class="form-control w-32">
-                    <label class="label py-1"><span class="label-text text-xs">Symbol</span></label>
-                    <select name="symbol" class="select select-bordered select-sm">
-                        <option value="">All</option>
-                        {% for sym in symbols %}
-                        <option value="{{ sym }}" {{ 'selected' if current_symbol == sym else '' }}>{{ sym }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+// Debounced version for text inputs
+const debouncedFilterChange = debounce(dispatchFilterChanged, 300);
 
-                <!-- Type -->
-                <div class="form-control w-28">
-                    <label class="label py-1"><span class="label-text text-xs">Type</span></label>
-                    <select name="type" class="select select-bordered select-sm">
-                        <option value="">All</option>
-                        {% for t in types %}
-                        <option value="{{ t }}" {{ 'selected' if current_type == t else '' }}>{{ t }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+// Handle save filter dropdown change (create vs update)
+function handleFilterSelectChange(select) {
+    const form = document.getElementById('save-filter-form');
+    const nameInput = document.getElementById('save-filter-name');
+    const favoriteCheckbox = document.getElementById('save-filter-favorite');
+    const submitBtn = document.getElementById('save-filter-submit');
+    const selectedOption = select.options[select.selectedIndex];
 
-                <!-- Date Range -->
-                <div class="form-control w-36">
-                    <label class="label py-1"><span class="label-text text-xs">From</span></label>
-                    <input type="date" name="start_date" value="{{ current_start_date or '' }}" class="input input-bordered input-sm" />
-                </div>
+    const filterId = select.value;
+    const filterName = selectedOption.dataset.name;
+    const isFavorite = selectedOption.dataset.favorite === 'true';
 
-                <div class="form-control w-36">
-                    <label class="label py-1"><span class="label-text text-xs">To</span></label>
-                    <input type="date" name="end_date" value="{{ current_end_date or '' }}" class="input input-bordered input-sm" />
-                </div>
+    if (filterId) {
+        // Update existing filter - use PUT
+        form.setAttribute('hx-put', `/saved-filters/${filterId}`);
+        form.removeAttribute('hx-post');
+        nameInput.value = filterName;
+        favoriteCheckbox.checked = isFavorite;
+        submitBtn.textContent = 'Update';
+    } else {
+        // Create new filter - use POST
+        form.setAttribute('hx-post', '/saved-filters/transactions');
+        form.removeAttribute('hx-put');
+        nameInput.value = '';
+        favoriteCheckbox.checked = false;
+        submitBtn.textContent = 'Save';
+    }
 
-                <!-- Apply Button -->
-                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+    // Re-process HTMX attributes
+    htmx.process(form);
+}
 
-                <!-- Toggle Advanced -->
-                <button
-                    type="button"
-                    class="btn btn-ghost btn-sm"
-                    onclick="document.getElementById('advanced-filters').classList.toggle('hidden')"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                    More
-                </button>
-            </div>
+// Reset save filter modal when opened
+function openSaveFilterModal() {
+    const select = document.getElementById('save-filter-select');
+    select.value = '';
+    handleFilterSelectChange(select);
+    document.getElementById('save-filter-modal').showModal();
+}
 
-            <!-- Advanced Filters (Collapsible) -->
-            <div id="advanced-filters" class="{{ '' if current_is_option or current_option_type or current_option_action or current_tag_id else 'hidden' }} mt-4 pt-4 border-t border-base-300">
-                <div class="flex flex-wrap gap-3 items-end">
-                    <!-- Options Group -->
-                    <div class="flex items-end gap-2 px-3 py-2 bg-base-200 rounded-lg">
-                        <span class="text-xs text-base-content/70 font-medium self-center">Options:</span>
+// Remove chip and trigger filter
+function removeChip(btn) {
+    const chip = btn.closest('.chip');
+    const value = chip.dataset.value;
+    const multiselect = chip.closest('[data-multiselect]');
 
-                        <div class="form-control w-28">
-                            <select name="is_option" class="select select-bordered select-sm">
-                                <option value="">All</option>
-                                <option value="true" {{ 'selected' if current_is_option == 'true' else '' }}>Options</option>
-                                <option value="false" {{ 'selected' if current_is_option == 'false' else '' }}>Stocks</option>
-                            </select>
-                        </div>
+    // Show the option again in dropdown
+    if (multiselect) {
+        const optionItem = multiselect.querySelector(`li[data-option-value="${value}"]`);
+        if (optionItem) {
+            optionItem.style.display = '';
+        }
+    }
 
-                        <div class="form-control w-24">
-                            <select name="option_type" class="select select-bordered select-sm">
-                                <option value="">C/P</option>
-                                {% for ot in option_types %}
-                                <option value="{{ ot }}" {{ 'selected' if current_option_type == ot else '' }}>{{ ot }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+    // Blur the dropdown to prevent it from opening
+    const dropdownTrigger = multiselect?.querySelector('[tabindex="0"]');
+    if (dropdownTrigger) {
+        dropdownTrigger.blur();
+    }
+    document.activeElement?.blur();
 
-                        <div class="form-control w-36">
-                            <select name="option_action" class="select select-bordered select-sm">
-                                <option value="">Action</option>
-                                {% for oa in option_actions %}
-                                <option value="{{ oa }}" {{ 'selected' if current_option_action == oa else '' }}>{{ oa.replace('_', ' ') }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
+    chip.remove();
+    dispatchFilterChanged();
+}
 
-                    <!-- Tag -->
-                    <div class="form-control w-32">
-                        <label class="label py-1"><span class="label-text text-xs">Tag</span></label>
-                        <select name="tag_id" class="select select-bordered select-sm">
-                            <option value="">All Tags</option>
-                            {% for tag in tags %}
-                            <option value="{{ tag.id }}" {{ 'selected' if current_tag_id == tag.id else '' }}>{{ tag.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+// Add chip from dropdown
+function addChip(name, value, label, element) {
+    const multiselect = document.querySelector(`[data-multiselect="${name}"]`);
+    const container = multiselect.querySelector('.flex-wrap');
 
-                    <!-- Clear Filters -->
-                    <a href="/transactions" class="btn btn-ghost btn-sm text-error">Clear All</a>
-                </div>
-            </div>
+    // Check if already exists
+    if (container.querySelector(`[data-value="${value}"]`)) {
+        return;
+    }
 
-            <!-- Hidden sort fields -->
-            <input type="hidden" name="sort_by" value="{{ current_sort_by }}" />
-            <input type="hidden" name="sort_dir" value="{{ current_sort_dir }}" />
-        </form>
-    </div>
-</div>
+    // Create chip
+    const chip = document.createElement('span');
+    chip.className = 'badge badge-sm badge-primary gap-0.5 chip';
+    chip.dataset.value = value;
+    chip.innerHTML = `
+        ${label}
+        <button type="button" tabindex="-1" onmousedown="event.preventDefault(); event.stopPropagation();" onclick="event.stopPropagation(); removeChip(this)" class="ml-0.5 hover:text-primary-content/50">&times;</button>
+        <input type="hidden" name="${name}" value="${value}" />
+    `;
 
-<!-- Transaction table -->
-<div id="transaction-table">
-    {% include "partials/transaction_table.html" %}
-</div>
+    // Insert before the add indicator ("+")
+    const addIndicator = container.querySelector('.add-indicator');
+    if (addIndicator) {
+        container.insertBefore(chip, addIndicator);
+    } else {
+        // Fallback for autocomplete inputs
+        const input = container.querySelector('.chip-input');
+        container.insertBefore(chip, input);
+    }
+
+    // Hide the selected option from dropdown
+    const optionItem = multiselect.querySelector(`li[data-option-value="${value}"]`);
+    if (optionItem) {
+        optionItem.style.display = 'none';
+    }
+
+    // Close dropdown
+    if (element) {
+        element.closest('.dropdown')?.blur();
+        document.activeElement?.blur();
+    }
+
+    dispatchFilterChanged();
+}
+
+// Autocomplete for symbol input
+document.querySelectorAll('.chip-input[data-autocomplete]').forEach(input => {
+    let dropdown = null;
+
+    input.addEventListener('input', debounce(async function() {
+        const url = this.dataset.autocomplete;
+        const name = this.dataset.name;
+        const query = this.value.trim();
+
+        if (query.length < 1) {
+            if (dropdown) dropdown.remove();
+            return;
+        }
+
+        const response = await fetch(`${url}?q=${encodeURIComponent(query)}`);
+        const symbols = await response.json();
+
+        // Remove existing dropdown
+        if (dropdown) dropdown.remove();
+
+        if (symbols.length === 0) return;
+
+        // Create dropdown
+        dropdown = document.createElement('ul');
+        dropdown.className = 'absolute z-50 menu p-2 shadow bg-base-100 rounded-box w-full max-h-60 overflow-y-auto';
+        dropdown.style.top = '100%';
+        dropdown.style.left = '0';
+
+        // Get existing values
+        const container = this.closest('[data-multiselect]');
+        const existing = Array.from(container.querySelectorAll('.chip')).map(c => c.dataset.value);
+
+        symbols.filter(s => !existing.includes(s)).forEach(symbol => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a>${symbol}</a>`;
+            li.querySelector('a').addEventListener('click', () => {
+                addChip(name, symbol, symbol);
+                this.value = '';
+                dropdown.remove();
+                dropdown = null;
+            });
+            dropdown.appendChild(li);
+        });
+
+        this.parentElement.style.position = 'relative';
+        this.parentElement.appendChild(dropdown);
+    }, 200));
+
+    // Close dropdown on blur
+    input.addEventListener('blur', () => {
+        setTimeout(() => {
+            if (dropdown) {
+                dropdown.remove();
+                dropdown = null;
+            }
+        }, 200);
+    });
+
+    // Handle enter key
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const value = this.value.trim().toUpperCase();
+            if (value) {
+                const name = this.dataset.name;
+                addChip(name, value, value);
+                this.value = '';
+                if (dropdown) {
+                    dropdown.remove();
+                    dropdown = null;
+                }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

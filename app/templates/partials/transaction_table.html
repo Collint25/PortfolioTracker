@@ -130,3 +130,16 @@
     </div>
 </div>
 {% endif %}
+
+{% if is_htmx %}
+<!-- OOB swaps: Update save filter UI when filters change -->
+{% with oob=true %}
+{% include "partials/save_filter_button.html" %}
+{% endwith %}
+<input type="hidden" id="save-filter-query-string" name="query_string" value="{{ filter_query_string }}" hx-swap-oob="outerHTML" />
+<!-- OOB: Update saved filters list to highlight active filter -->
+<div id="saved-filters" hx-swap-oob="innerHTML">
+{% set filter_page = "transactions" %}
+{% include "partials/saved_filter_list.html" %}
+</div>
+{% endif %}

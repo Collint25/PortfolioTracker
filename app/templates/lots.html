@@ -2,12 +2,12 @@
 
 {% block content %}
 <div class="flex justify-between items-center mb-6">
-    <h1 class="text-3xl font-bold">Linked Trades</h1>
+    <h1 class="text-3xl font-bold">Trade Lots</h1>
     <div class="flex gap-2 items-center">
-        <span class="badge badge-lg">{{ total }} trades</span>
+        <span class="badge badge-lg">{{ total }} lots</span>
         <button
-            hx-post="/linked-trades/auto-match"
-            hx-target="#linked-trade-list"
+            hx-post="/lots/auto-match"
+            hx-target="#lot-list"
             hx-swap="innerHTML"
             class="btn btn-primary btn-sm"
         >
@@ -43,8 +43,8 @@
 <div class="card bg-base-100 shadow mb-6">
     <div class="card-body py-4">
         <form
-            hx-get="/linked-trades/"
-            hx-target="#linked-trade-list"
+            hx-get="/lots/"
+            hx-target="#lot-list"
             hx-swap="innerHTML"
             hx-push-url="true"
             class="flex flex-wrap gap-4 items-end"
@@ -62,13 +62,21 @@
             </div>
             <div class="form-control">
                 <label class="label py-1"><span class="label-text">Symbol</span></label>
-                <select name="underlying_symbol" class="select select-bordered select-sm">
+                <select name="symbol" class="select select-bordered select-sm">
                     <option value="">All Symbols</option>
                     {% for symbol in symbols %}
-                    <option value="{{ symbol }}" {% if filters.underlying_symbol == symbol %}selected{% endif %}>
+                    <option value="{{ symbol }}" {% if filters.symbol == symbol %}selected{% endif %}>
                         {{ symbol }}
                     </option>
                     {% endfor %}
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label py-1"><span class="label-text">Type</span></label>
+                <select name="instrument_type" class="select select-bordered select-sm">
+                    <option value="">All</option>
+                    <option value="STOCK" {% if filters.instrument_type == 'STOCK' %}selected{% endif %}>Stocks</option>
+                    <option value="OPTION" {% if filters.instrument_type == 'OPTION' %}selected{% endif %}>Options</option>
                 </select>
             </div>
             <div class="form-control">
@@ -80,13 +88,13 @@
                 </select>
             </div>
             <button type="submit" class="btn btn-sm btn-outline">Filter</button>
-            <a href="/linked-trades/" class="btn btn-sm btn-ghost">Clear</a>
+            <a href="/lots/" class="btn btn-sm btn-ghost">Clear</a>
         </form>
     </div>
 </div>
 
-<!-- Linked trade list -->
-<div id="linked-trade-list">
-    {% include "partials/linked_trade_list.html" %}
+<!-- Lot list -->
+<div id="lot-list">
+    {% include "partials/lot_list.html" %}
 </div>
 {% endblock %}

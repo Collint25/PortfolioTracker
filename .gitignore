@@ -32,3 +32,9 @@ htmlcov/
 
 # API Response Examples
 .outputs
+
+# Playwright test artifacts
+.playwright-mcp
+
+# Discovery script output
+output/

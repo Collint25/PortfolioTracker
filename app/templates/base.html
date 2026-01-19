@@ -17,7 +17,7 @@
             <ul class="menu menu-horizontal px-1">
                 <li><a href="/">Dashboard</a></li>
                 <li><a href="/transactions">Transactions</a></li>
-                <li><a href="/linked-trades">Linked Trades</a></li>
+                <li><a href="/lots">Lots</a></li>
                 <li><a href="/accounts">Accounts</a></li>
                 <li><a href="/settings">Settings</a></li>
             </ul>
@@ -34,5 +34,7 @@
     <div class="htmx-indicator fixed top-0 left-0 w-full">
         <div class="h-1 bg-primary animate-pulse"></div>
     </div>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>

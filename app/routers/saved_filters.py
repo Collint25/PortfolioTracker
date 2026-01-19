@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -42,9 +42,36 @@ def create_saved_filter(
     )
 
 
+@router.put("/{filter_id}", response_class=HTMLResponse)
+def update_saved_filter(
+    request: Request,
+    filter_id: int,
+    name: str = Form(...),
+    query_string: str = Form(...),
+    is_favorite: bool = Form(False),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    """Update an existing saved filter."""
+    saved_filter = saved_filter_service.get_filter_by_id(db, filter_id)
+    if not saved_filter:
+        return HTMLResponse(content="", status_code=404)
+
+    page = saved_filter.page
+    saved_filter_service.update_filter(db, filter_id, name, query_string, is_favorite)
+    filters = saved_filter_service.get_filters_for_page(db, page)
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/saved_filter_list.html",
+        context={"saved_filters": filters, "filter_page": page},
+    )
+
+
 @router.post("/{filter_id}/favorite", response_class=HTMLResponse)
 def toggle_favorite(
-    request: Request, filter_id: int, db: Session = Depends(get_db)
+    request: Request,
+    filter_id: int,
+    db: Session = Depends(get_db),
+    filter_query_string: str = Query(""),
 ) -> HTMLResponse:
     """Toggle favorite status for a filter."""
     saved_filter = saved_filter_service.get_filter_by_id(db, filter_id)
@@ -61,13 +88,20 @@ def toggle_favorite(
     return templates.TemplateResponse(
         request=request,
         name="partials/saved_filter_list.html",
-        context={"saved_filters": filters, "filter_page": page},
+        context={
+            "saved_filters": filters,
+            "filter_page": page,
+            "filter_query_string": filter_query_string,
+        },
     )
 
 
 @router.delete("/{filter_id}", response_class=HTMLResponse)
 def delete_saved_filter(
-    request: Request, filter_id: int, db: Session = Depends(get_db)
+    request: Request,
+    filter_id: int,
+    db: Session = Depends(get_db),
+    filter_query_string: str = Query(""),
 ) -> HTMLResponse:
     """Delete a saved filter."""
     saved_filter = saved_filter_service.get_filter_by_id(db, filter_id)
@@ -80,5 +114,9 @@ def delete_saved_filter(
     return templates.TemplateResponse(
         request=request,
         name="partials/saved_filter_list.html",
-        context={"saved_filters": filters, "filter_page": page},
+        context={
+            "saved_filters": filters,
+            "filter_page": page,
+            "filter_query_string": filter_query_string,
+        },
     )

@@ -6,7 +6,7 @@ from datetime import date
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Query
 
-from app.models import LinkedTrade, Transaction
+from app.models import TradeLot, Transaction
 from app.models.tag import transaction_tags
 
 
@@ -29,11 +29,12 @@ class TransactionFilter:
 
 
 @dataclass
-class LinkedTradeFilter:
-    """Filter criteria for linked trade queries."""
+class LotFilter:
+    """Filter criteria for lot queries."""
 
     account_id: int | None = None
-    underlying_symbol: str | None = None
+    symbol: str | None = None
+    instrument_type: str | None = None  # STOCK, OPTION
     is_closed: bool | None = None
 
 
@@ -109,16 +110,19 @@ def apply_transaction_sorting(query: Query, filters: TransactionFilter) -> Query
     return query
 
 
-def apply_linked_trade_filters(query: Query, filters: LinkedTradeFilter) -> Query:
-    """Apply LinkedTradeFilter criteria to a query."""
+def apply_lot_filters(query: Query, filters: LotFilter) -> Query:
+    """Apply LotFilter criteria to a query."""
     if filters.account_id is not None:
-        query = query.filter(LinkedTrade.account_id == filters.account_id)
+        query = query.filter(TradeLot.account_id == filters.account_id)
 
-    if filters.underlying_symbol is not None:
-        query = query.filter(LinkedTrade.symbol == filters.underlying_symbol)
+    if filters.symbol is not None:
+        query = query.filter(TradeLot.symbol == filters.symbol)
+
+    if filters.instrument_type is not None:
+        query = query.filter(TradeLot.instrument_type == filters.instrument_type)
 
     if filters.is_closed is not None:
-        query = query.filter(LinkedTrade.is_closed == filters.is_closed)
+        query = query.filter(TradeLot.is_closed == filters.is_closed)
 
     return query
 

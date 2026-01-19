@@ -18,7 +18,9 @@ from sqlalchemy.orm import Session
 from app.calculations import pl_calcs
 from app.models import LotTransaction, TradeLot, Transaction
 from app.services.filters import (
+    LotFilter,
     PaginationParams,
+    apply_lot_filters,
     apply_pagination,
 )
 
@@ -49,22 +51,15 @@ PositionKey = StockKey | OptionKey
 
 def get_all_lots(
     db: Session,
-    filters: dict | None = None,
-    pagination: PaginationParams = PaginationParams(),
+    filters: LotFilter | None = None,
+    pagination: PaginationParams | None = None,
 ) -> tuple[list[TradeLot], int]:
     """Get filtered, paginated lots."""
     query = db.query(TradeLot)
 
     # Apply filters
     if filters:
-        if filters.get("account_id") is not None:
-            query = query.filter(TradeLot.account_id == filters["account_id"])
-        if filters.get("symbol") is not None:
-            query = query.filter(TradeLot.symbol == filters["symbol"])
-        if filters.get("is_closed") is not None:
-            query = query.filter(TradeLot.is_closed == filters["is_closed"])
-        if filters.get("instrument_type") is not None:
-            query = query.filter(TradeLot.instrument_type == filters["instrument_type"])
+        query = apply_lot_filters(query, filters)
 
     # Get total
     total = query.count()
@@ -75,7 +70,8 @@ def get_all_lots(
     )
 
     # Paginate
-    query = apply_pagination(query, pagination)
+    if pagination:
+        query = apply_pagination(query, pagination)
 
     lots = query.all()
     return lots, total
@@ -483,9 +479,14 @@ def auto_match_contract(db: Session, contract_key: OptionKey) -> list[TradeLot]:
 
             # Check if position is fully closed
             if current_lot is not None:
-                if current_lot.total_closed_quantity >= current_lot.total_opened_quantity:
+                if (
+                    current_lot.total_closed_quantity
+                    >= current_lot.total_opened_quantity
+                ):
                     current_lot.is_closed = True
-                    current_lot.realized_pl = calculate_linked_trade_pl(db, current_lot.id)
+                    current_lot.realized_pl = calculate_linked_trade_pl(
+                        db, current_lot.id
+                    )
 
     # Handle remaining opens (position still open)
     for open_txn in opens:
@@ -568,9 +569,14 @@ def match_stock_position(db: Session, position_key: StockKey) -> list[TradeLot]:
 
             # Check if position is fully closed
             if current_lot is not None:
-                if current_lot.total_closed_quantity >= current_lot.total_opened_quantity:
+                if (
+                    current_lot.total_closed_quantity
+                    >= current_lot.total_opened_quantity
+                ):
                     current_lot.is_closed = True
-                    current_lot.realized_pl = calculate_linked_trade_pl(db, current_lot.id)
+                    current_lot.realized_pl = calculate_linked_trade_pl(
+                        db, current_lot.id
+                    )
 
     # Handle remaining opens (position still open)
     for open_txn in opens:

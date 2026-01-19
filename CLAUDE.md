@@ -7,13 +7,30 @@ Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 - Frontend: Jinja2 + HTMX + Tailwind/DaisyUI
 - Package mgr: uv
 
-## Commands
-- `uv sync --extra dev` - sync all dependencies including dev tools (run after clone)
+## Quick Start
+```bash
+make dev     # Sync deps, migrate, and run dev server
+```
+
+## Make Commands
+- `make dev` - sync deps, migrate, run server (use this to start working)
+- `make setup` - sync deps and migrate (no server)
+- `make migrate` - run database migrations only
+- `make test` - run pytest
+- `make lint` - check with ruff and mypy
+- `make format` - auto-format code
+- `make check` - run lint + test (before committing)
+- `make clean` - remove cache files
+- `make kill` - stop server running on port 8001
+
+## Raw Commands
+For reference, the underlying commands:
+- `uv sync --extra dev` - sync dependencies
 - `uv run python run.py` - start dev server
 - `uv run pytest` - run tests
 - `uv run alembic upgrade head` - run migrations
 
-**Note:** Dev tools (ruff, mypy, pytest) require dev dependencies. Run `uv sync --extra dev` if type checking or linting fails with import errors.
+**Note:** Dev tools (ruff, mypy, pytest) require dev dependencies. Run `uv sync --extra dev` (or `make setup`) if type checking or linting fails with import errors.
 
 ## Documentation
 

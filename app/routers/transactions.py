@@ -28,12 +28,6 @@ def build_filter_query_string(filters: TransactionFilter) -> str:
     """Build a URL query string from filter parameters."""
     params: list[tuple[str, str]] = []
 
-    if filters.symbols:
-        for sym in filters.symbols:
-            params.append(("symbol", sym))
-        if filters.symbol_mode != "include":
-            params.append(("symbol_mode", filters.symbol_mode))
-
     if filters.types:
         for t in filters.types:
             params.append(("type", t))
@@ -60,6 +54,10 @@ def build_filter_query_string(filters: TransactionFilter) -> str:
         params.append(("option_type", filters.option_type))
     if filters.option_action:
         params.append(("option_action", filters.option_action))
+    if filters.position_type:
+        params.append(("position_type", filters.position_type))
+    if filters.action_type:
+        params.append(("action_type", filters.action_type))
     if filters.sort_by and filters.sort_by != "trade_date":
         params.append(("sort_by", filters.sort_by))
     if filters.sort_dir and filters.sort_dir != "desc":
@@ -74,16 +72,21 @@ def list_transactions(
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1),
     clear_favorite: bool = Query(False),
+    skip_favorite: bool = Query(False),
+    _filter_id: int | None = Query(None),
 ) -> Response:
     """List transactions with filtering, sorting, and pagination."""
     per_page = 50
 
-    # Handle clearing the favorite filter
+    # Handle clearing the favorite filter (permanently removes favorite)
     if clear_favorite:
         favorite = saved_filter_service.get_favorite_filter(db, "transactions")
         if favorite:
             saved_filter_service.clear_favorite(db, favorite.id)
-        # Use default filters, no favorite applied
+        filters = TransactionFilter()
+        applied_favorite = None
+    # Handle skipping favorite (temporary, just for this request)
+    elif skip_favorite:
         filters = TransactionFilter()
         applied_favorite = None
     else:
@@ -100,7 +103,6 @@ def list_transactions(
 
     # Get filter options
     accounts = account_service.get_all_accounts(db)
-    symbols = transaction_service.get_unique_symbols(db)
     types = transaction_service.get_unique_types(db)
     tags = tag_service.get_all_tags(db)
     option_types = transaction_service.get_unique_option_types(db)
@@ -119,7 +121,6 @@ def list_transactions(
         "per_page": per_page,
         "total_pages": total_pages,
         "accounts": accounts,
-        "symbols": symbols,
         "types": types,
         "tags": tags,
         "option_types": option_types,
@@ -127,13 +128,11 @@ def list_transactions(
         "saved_filters": saved_filters,
         "filter_query_string": filter_query_string,
         "applied_favorite": applied_favorite,
-        # Current filter values for form (now lists for multi-select fields)
-        "current_symbols": filters.symbols or [],
-        "current_symbol_mode": filters.symbol_mode,
+        "active_filter_id": _filter_id
+        or (applied_favorite.id if applied_favorite else None),
+        # Current filter values for form (multi-select fields)
         "current_types": filters.types or [],
-        "current_type_mode": filters.type_mode,
         "current_tag_ids": filters.tag_ids or [],
-        "current_tag_mode": filters.tag_mode,
         # Keep these for unchanged filters
         "current_account_id": filters.account_id,
         "current_start_date": filters.start_date,
@@ -144,6 +143,8 @@ def list_transactions(
         ),
         "current_option_type": filters.option_type,
         "current_option_action": filters.option_action,
+        "current_position_type": filters.position_type,
+        "current_action_type": filters.action_type,
         "current_sort_by": filters.sort_by,
         "current_sort_dir": filters.sort_dir,
         "title": "Transactions",

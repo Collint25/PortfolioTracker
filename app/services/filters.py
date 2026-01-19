@@ -23,8 +23,6 @@ class TransactionFilter:
 
     account_id: int | None = None
     # Multi-select fields with include/exclude mode
-    symbols: list[str] | None = None
-    symbol_mode: str = "include"  # "include" or "exclude"
     types: list[str] | None = None
     type_mode: str = "include"
     tag_ids: list[int] | None = None
@@ -36,6 +34,8 @@ class TransactionFilter:
     is_option: bool | None = None
     option_type: str | None = None
     option_action: str | None = None
+    position_type: str | None = None  # LONG, SHORT
+    action_type: str | None = None  # OPEN, CLOSE
     sort_by: str = "trade_date"
     sort_dir: str = "desc"
 
@@ -66,27 +66,6 @@ def apply_transaction_filters(query: Query, filters: TransactionFilter) -> Query
     """Apply TransactionFilter criteria to a query."""
     if filters.account_id is not None:
         query = query.filter(Transaction.account_id == filters.account_id)
-
-    # Symbols (multi-select with mode)
-    if filters.symbols:
-        if filters.symbol_mode == "exclude":
-            # For exclude, need to handle NULLs properly
-            # NOT IN returns NULL when comparing to NULL, so exclude explicitly
-            query = query.filter(
-                Transaction.symbol.notin_(filters.symbols),
-                or_(
-                    Transaction.underlying_symbol.is_(None),
-                    Transaction.underlying_symbol.notin_(filters.symbols),
-                ),
-            )
-        else:
-            # Include: match if symbol OR underlying_symbol is in list
-            query = query.filter(
-                or_(
-                    Transaction.symbol.in_(filters.symbols),
-                    Transaction.underlying_symbol.in_(filters.symbols),
-                )
-            )
 
     # Types (multi-select with mode)
     if filters.types:
@@ -136,6 +115,26 @@ def apply_transaction_filters(query: Query, filters: TransactionFilter) -> Query
     if filters.option_action:
         query = query.filter(Transaction.option_action == filters.option_action)
 
+    # Position type filter (LONG/SHORT based on option_action)
+    if filters.position_type == "LONG":
+        query = query.filter(
+            Transaction.option_action.in_(["BUY_TO_OPEN", "SELL_TO_CLOSE"])
+        )
+    elif filters.position_type == "SHORT":
+        query = query.filter(
+            Transaction.option_action.in_(["SELL_TO_OPEN", "BUY_TO_CLOSE"])
+        )
+
+    # Action type filter (OPEN/CLOSE based on option_action)
+    if filters.action_type == "OPEN":
+        query = query.filter(
+            Transaction.option_action.in_(["BUY_TO_OPEN", "SELL_TO_OPEN"])
+        )
+    elif filters.action_type == "CLOSE":
+        query = query.filter(
+            Transaction.option_action.in_(["BUY_TO_CLOSE", "SELL_TO_CLOSE"])
+        )
+
     return query
 
 
@@ -174,8 +173,6 @@ def apply_pagination(query: Query, pagination: PaginationParams) -> Query:
 # Filter param names (excludes sort_by, sort_dir, page which are not filters)
 TRANSACTION_FILTER_PARAMS = [
     "account_id",
-    "symbol",
-    "symbol_mode",
     "type",
     "type_mode",
     "tag_id",
@@ -186,6 +183,8 @@ TRANSACTION_FILTER_PARAMS = [
     "is_option",
     "option_type",
     "option_action",
+    "position_type",
+    "action_type",
 ]
 
 
@@ -222,8 +221,6 @@ def build_filter_from_query_string(query_string: str) -> TransactionFilter:
 
     return TransactionFilter(
         account_id=parse_int_param(get_single("account_id")),
-        symbols=get_list("symbol"),
-        symbol_mode=get_single("symbol_mode") or "include",
         types=get_list("type"),
         type_mode=get_single("type_mode") or "include",
         tag_ids=get_int_list("tag_id"),
@@ -234,6 +231,8 @@ def build_filter_from_query_string(query_string: str) -> TransactionFilter:
         is_option=parse_bool_param(get_single("is_option")),
         option_type=get_single("option_type") or None,
         option_action=get_single("option_action") or None,
+        position_type=get_single("position_type") or None,
+        action_type=get_single("action_type") or None,
         sort_by=get_single("sort_by") or "trade_date",
         sort_dir=get_single("sort_dir") or "desc",
     )
@@ -263,8 +262,6 @@ def build_filter_from_request(request: "Request") -> TransactionFilter:
 
     return TransactionFilter(
         account_id=parse_int_param(get("account_id")),
-        symbols=get_list("symbol"),
-        symbol_mode=get("symbol_mode") or "include",
         types=get_list("type"),
         type_mode=get("type_mode") or "include",
         tag_ids=get_int_list("tag_id"),
@@ -275,6 +272,8 @@ def build_filter_from_request(request: "Request") -> TransactionFilter:
         is_option=parse_bool_param(get("is_option")),
         option_type=get("option_type"),
         option_action=get("option_action"),
+        position_type=get("position_type"),
+        action_type=get("action_type"),
         sort_by=get("sort_by") or "trade_date",
         sort_dir=get("sort_dir") or "desc",
     )

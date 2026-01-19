@@ -49,6 +49,39 @@ def create_filter(
     return saved_filter
 
 
+def update_filter(
+    db: Session,
+    filter_id: int,
+    name: str,
+    query_string: str,
+    is_favorite: bool | None = None,
+) -> SavedFilter | None:
+    """Update an existing saved filter's name and query string."""
+    saved_filter = get_filter_by_id(db, filter_id)
+    if not saved_filter:
+        return None
+
+    saved_filter.name = name
+    saved_filter.filter_json = query_string
+
+    # Handle favorite status if provided
+    if is_favorite is not None:
+        if is_favorite and not saved_filter.is_favorite:
+            # Setting as favorite - clear existing favorite for this page
+            db.query(SavedFilter).filter(
+                SavedFilter.page == saved_filter.page,
+                SavedFilter.is_favorite,
+                SavedFilter.id != filter_id,
+            ).update({SavedFilter.is_favorite: False})
+            saved_filter.is_favorite = True
+        elif not is_favorite:
+            saved_filter.is_favorite = False
+
+    db.commit()
+    db.refresh(saved_filter)
+    return saved_filter
+
+
 def set_favorite(db: Session, filter_id: int) -> SavedFilter | None:
     """Set a filter as the favorite for its page."""
     saved_filter = get_filter_by_id(db, filter_id)

@@ -92,30 +92,6 @@ def test_filter_by_account_id(
     assert all(t.account_id == sample_transactions[0].account_id for t in results)
 
 
-def test_filter_by_symbol(db_session: Session, sample_transactions: list[Transaction]):
-    """Test filtering by symbol."""
-    filters = TransactionFilter(symbols=["AAPL"])
-    query = db_session.query(Transaction)
-    query = apply_transaction_filters(query, filters)
-
-    results = query.all()
-    assert len(results) == 1
-    assert results[0].symbol == "AAPL"
-
-
-def test_filter_by_underlying_symbol(
-    db_session: Session, sample_transactions: list[Transaction]
-):
-    """Test filtering by underlying_symbol for options."""
-    filters = TransactionFilter(symbols=["TSLA"])
-    query = db_session.query(Transaction)
-    query = apply_transaction_filters(query, filters)
-
-    results = query.all()
-    assert len(results) == 1
-    assert results[0].underlying_symbol == "TSLA"
-
-
 def test_filter_by_transaction_type(
     db_session: Session, sample_transactions: list[Transaction]
 ):
@@ -169,6 +145,34 @@ def test_filter_by_option_type(
     results = query.all()
     assert len(results) == 1
     assert results[0].option_type == "CALL"
+
+
+def test_filter_by_position_type_long(
+    db_session: Session, sample_transactions: list[Transaction]
+):
+    """Test filtering by position_type LONG."""
+    filters = TransactionFilter(position_type="LONG")
+    query = db_session.query(Transaction)
+    query = apply_transaction_filters(query, filters)
+
+    results = query.all()
+    # BUY_TO_OPEN is LONG
+    assert len(results) == 1
+    assert results[0].option_action == "BUY_TO_OPEN"
+
+
+def test_filter_by_action_type_open(
+    db_session: Session, sample_transactions: list[Transaction]
+):
+    """Test filtering by action_type OPEN."""
+    filters = TransactionFilter(action_type="OPEN")
+    query = db_session.query(Transaction)
+    query = apply_transaction_filters(query, filters)
+
+    results = query.all()
+    # BUY_TO_OPEN and SELL_TO_OPEN are OPEN
+    assert len(results) == 1
+    assert results[0].option_action == "BUY_TO_OPEN"
 
 
 def test_sorting_asc(db_session: Session, sample_transactions: list[Transaction]):
@@ -242,7 +246,7 @@ def test_has_any_filter_params_empty():
 def test_has_any_filter_params_with_filter():
     """Test with filter param returns True."""
     request = MagicMock()
-    request.query_params = {"symbol": "AAPL"}
+    request.query_params = {"type": "BUY"}
     assert has_any_filter_params(request) is True
 
 
@@ -267,15 +271,15 @@ def test_build_filter_from_empty_query_string():
     """Test empty query string returns default filter."""
     result = build_filter_from_query_string("")
     assert result.account_id is None
-    assert result.symbols is None
+    assert result.types is None
     assert result.sort_by == "trade_date"
     assert result.sort_dir == "desc"
 
 
 def test_build_filter_from_query_string_basic():
     """Test parsing basic filter params."""
-    result = build_filter_from_query_string("symbol=AAPL&account_id=1")
-    assert result.symbols == ["AAPL"]
+    result = build_filter_from_query_string("type=BUY&account_id=1")
+    assert result.types == ["BUY"]
     assert result.account_id == 1
 
 
@@ -297,6 +301,18 @@ def test_build_filter_from_query_string_with_sort():
     result = build_filter_from_query_string("sort_by=symbol&sort_dir=asc")
     assert result.sort_by == "symbol"
     assert result.sort_dir == "asc"
+
+
+def test_build_filter_from_query_string_with_position_type():
+    """Test parsing position_type param."""
+    result = build_filter_from_query_string("position_type=LONG")
+    assert result.position_type == "LONG"
+
+
+def test_build_filter_from_query_string_with_action_type():
+    """Test parsing action_type param."""
+    result = build_filter_from_query_string("action_type=OPEN")
+    assert result.action_type == "OPEN"
 
 
 # Tests for build_filter_from_request
@@ -324,9 +340,9 @@ def test_build_filter_from_request_with_params():
     request.query_params.get = lambda k: {"account_id": "2", "is_option": "false"}.get(
         k
     )
-    request.query_params.getlist = lambda k: ["MSFT"] if k == "symbol" else []
+    request.query_params.getlist = lambda k: ["BUY"] if k == "type" else []
     result = build_filter_from_request(request)
-    assert result.symbols == ["MSFT"]
+    assert result.types == ["BUY"]
     assert result.account_id == 2
     assert result.is_option is False
 
@@ -340,7 +356,7 @@ def test_get_effective_filter_with_explicit_params(db_session: Session):
     favorite = SavedFilter(
         name="Favorite",
         page="transactions",
-        filter_json="symbol=IGNORED",
+        filter_json="type=IGNORED",
         is_favorite=True,
     )
     db_session.add(favorite)
@@ -348,12 +364,12 @@ def test_get_effective_filter_with_explicit_params(db_session: Session):
 
     request = MagicMock()
     request.query_params = MagicMock()
-    request.query_params.get = lambda k: {"symbol": "AAPL"}.get(k)
-    request.query_params.getlist = lambda k: ["AAPL"] if k == "symbol" else []
+    request.query_params.get = lambda k: {"type": "BUY"}.get(k)
+    request.query_params.getlist = lambda k: ["BUY"] if k == "type" else []
 
     filter_obj, applied_favorite = get_effective_transaction_filter(request, db_session)
 
-    assert filter_obj.symbols == ["AAPL"]
+    assert filter_obj.types == ["BUY"]
     assert applied_favorite is None
 
 
@@ -362,7 +378,7 @@ def test_get_effective_filter_applies_favorite(db_session: Session):
     favorite = SavedFilter(
         name="My Favorite",
         page="transactions",
-        filter_json="symbol=TSLA&account_id=5",
+        filter_json="type=SELL&account_id=5",
         is_favorite=True,
     )
     db_session.add(favorite)
@@ -373,7 +389,7 @@ def test_get_effective_filter_applies_favorite(db_session: Session):
 
     filter_obj, applied_favorite = get_effective_transaction_filter(request, db_session)
 
-    assert filter_obj.symbols == ["TSLA"]
+    assert filter_obj.types == ["SELL"]
     assert filter_obj.account_id == 5
     assert applied_favorite is not None
     assert applied_favorite.name == "My Favorite"
@@ -386,7 +402,7 @@ def test_get_effective_filter_no_favorite(db_session: Session):
 
     filter_obj, applied_favorite = get_effective_transaction_filter(request, db_session)
 
-    assert filter_obj.symbols is None
+    assert filter_obj.types is None
     assert filter_obj.account_id is None
     assert applied_favorite is None
 
@@ -396,7 +412,7 @@ def test_get_effective_filter_sort_only_applies_favorite(db_session: Session):
     favorite = SavedFilter(
         name="Favorite",
         page="transactions",
-        filter_json="symbol=GOOG",
+        filter_json="type=BUY",
         is_favorite=True,
     )
     db_session.add(favorite)
@@ -407,7 +423,7 @@ def test_get_effective_filter_sort_only_applies_favorite(db_session: Session):
 
     filter_obj, applied_favorite = get_effective_transaction_filter(request, db_session)
 
-    assert filter_obj.symbols == ["GOOG"]
+    assert filter_obj.types == ["BUY"]
     assert applied_favorite is not None
 
 
@@ -417,56 +433,25 @@ def test_get_effective_filter_sort_only_applies_favorite(db_session: Session):
 def test_transaction_filter_defaults():
     """TransactionFilter has correct default values for multi-value fields."""
     f = TransactionFilter()
-    assert f.symbols is None
-    assert f.symbol_mode == "include"
     assert f.types is None
     assert f.type_mode == "include"
     assert f.tag_ids is None
     assert f.tag_mode == "include"
+    assert f.position_type is None
+    assert f.action_type is None
 
 
 def test_transaction_filter_with_multi_values():
     """TransactionFilter accepts list values."""
     f = TransactionFilter(
-        symbols=["AAPL", "MSFT"],
-        symbol_mode="exclude",
         types=["BUY", "SELL"],
         tag_ids=[1, 2, 3],
     )
-    assert f.symbols == ["AAPL", "MSFT"]
-    assert f.symbol_mode == "exclude"
     assert f.types == ["BUY", "SELL"]
     assert f.tag_ids == [1, 2, 3]
 
 
 # Tests for multi-value IN/NOT IN filtering
-
-
-def test_apply_filters_symbols_include(
-    db_session: Session, sample_transactions: list[Transaction]
-):
-    """Include mode uses IN clause for multiple symbols."""
-    filters = TransactionFilter(symbols=["AAPL", "MSFT"], symbol_mode="include")
-    query = db_session.query(Transaction)
-    result = apply_transaction_filters(query, filters)
-    results = result.all()
-    # Should match AAPL and MSFT
-    assert len(results) == 2
-    symbols = {r.symbol for r in results}
-    assert symbols == {"AAPL", "MSFT"}
-
-
-def test_apply_filters_symbols_exclude(
-    db_session: Session, sample_transactions: list[Transaction]
-):
-    """Exclude mode uses NOT IN clause."""
-    filters = TransactionFilter(symbols=["AAPL"], symbol_mode="exclude")
-    query = db_session.query(Transaction)
-    result = apply_transaction_filters(query, filters)
-    results = result.all()
-    # Should exclude AAPL, leaving MSFT and TSLA (option)
-    assert len(results) == 2
-    assert all(r.symbol != "AAPL" for r in results)
 
 
 def test_apply_filters_types_include(
@@ -497,28 +482,12 @@ def test_apply_filters_types_exclude(
 # Tests for multi-value query string parsing
 
 
-def test_build_filter_from_query_string_multi_symbols():
-    """Parses multiple symbol values from query string."""
-    qs = "symbol=AAPL&symbol=MSFT&symbol_mode=exclude"
-    f = build_filter_from_query_string(qs)
-    assert f.symbols == ["AAPL", "MSFT"]
-    assert f.symbol_mode == "exclude"
-
-
 def test_build_filter_from_query_string_multi_types():
     """Parses multiple type values from query string."""
     qs = "type=BUY&type=SELL&type_mode=include"
     f = build_filter_from_query_string(qs)
     assert f.types == ["BUY", "SELL"]
     assert f.type_mode == "include"
-
-
-def test_build_filter_from_query_string_single_symbol_compat():
-    """Single symbol value still works (backward compat)."""
-    qs = "symbol=AAPL"
-    f = build_filter_from_query_string(qs)
-    assert f.symbols == ["AAPL"]
-    assert f.symbol_mode == "include"
 
 
 def test_build_filter_from_query_string_multi_tag_ids():

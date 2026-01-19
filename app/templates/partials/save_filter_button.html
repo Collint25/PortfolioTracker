@@ -1,7 +1,7 @@
 <button
     id="save-filter-btn"
     class="btn btn-ghost btn-xs"
-    onclick="document.getElementById('save-filter-modal').showModal()"
+    onclick="openSaveFilterModal()"
     {% if not filter_query_string %}disabled{% endif %}
     title="{{ 'Save current filter settings' if filter_query_string else 'Apply filters first to save' }}"
     {% if oob %}hx-swap-oob="outerHTML"{% endif %}

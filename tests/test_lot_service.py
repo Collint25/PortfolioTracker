@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models import Account, Base, Transaction
+from app.models import Account, Base, LotTransaction, TradeLot, Transaction
 from app.services import lot_service
 from app.services.lot_service import OptionKey
 
@@ -693,3 +693,163 @@ class TestOrphanHandling:
 
         # Single open with no closes = no lot created (new behavior)
         assert len(linked_trades) == 0
+
+
+class TestGetPlSummaryDateFiltering:
+    def test_filters_by_start_date(self, db_session):
+        """Only includes lots closed on or after start_date."""
+        account = Account(
+            snaptrade_id="test-pl-summary",
+            name="Test",
+            account_number="12345",
+            institution_name="Test",
+        )
+        db_session.add(account)
+        db_session.flush()
+
+        # Create two closed lots with different close dates via legs
+        lot1 = TradeLot(
+            account_id=account.id,
+            instrument_type="STOCK",
+            symbol="AAPL",
+            direction="LONG",
+            total_opened_quantity=Decimal("10"),
+            realized_pl=Decimal("100"),
+            is_closed=True,
+        )
+        lot2 = TradeLot(
+            account_id=account.id,
+            instrument_type="STOCK",
+            symbol="MSFT",
+            direction="LONG",
+            total_opened_quantity=Decimal("10"),
+            realized_pl=Decimal("200"),
+            is_closed=True,
+        )
+        db_session.add_all([lot1, lot2])
+        db_session.flush()
+
+        # Add closing transactions with dates
+        txn1 = Transaction(
+            snaptrade_id="txn-1",
+            account_id=account.id,
+            symbol="AAPL",
+            trade_date=date(2025, 1, 5),
+            type="SELL",
+            quantity=Decimal("10"),
+            amount=Decimal("1000"),
+        )
+        txn2 = Transaction(
+            snaptrade_id="txn-2",
+            account_id=account.id,
+            symbol="MSFT",
+            trade_date=date(2025, 1, 15),
+            type="SELL",
+            quantity=Decimal("10"),
+            amount=Decimal("2000"),
+        )
+        db_session.add_all([txn1, txn2])
+        db_session.flush()
+
+        leg1 = LotTransaction(
+            lot_id=lot1.id,
+            transaction_id=txn1.id,
+            allocated_quantity=Decimal("10"),
+            trade_date=date(2025, 1, 5),
+            leg_type="CLOSE",
+            price_per_contract=Decimal("10"),
+        )
+        leg2 = LotTransaction(
+            lot_id=lot2.id,
+            transaction_id=txn2.id,
+            allocated_quantity=Decimal("10"),
+            trade_date=date(2025, 1, 15),
+            leg_type="CLOSE",
+            price_per_contract=Decimal("10"),
+        )
+        db_session.add_all([leg1, leg2])
+        db_session.commit()
+
+        # Filter: only lots closed on/after Jan 10
+        result = lot_service.get_pl_summary(db_session, start_date=date(2025, 1, 10))
+
+        assert result["total_pl"] == Decimal("200")  # Only lot2
+        assert result["closed_count"] == 1
+
+    def test_filters_by_end_date(self, db_session):
+        """Only includes lots closed on or before end_date."""
+        account = Account(
+            snaptrade_id="test-pl-summary-2",
+            name="Test",
+            account_number="12346",
+            institution_name="Test",
+        )
+        db_session.add(account)
+        db_session.flush()
+
+        lot1 = TradeLot(
+            account_id=account.id,
+            instrument_type="STOCK",
+            symbol="AAPL",
+            direction="LONG",
+            total_opened_quantity=Decimal("10"),
+            realized_pl=Decimal("100"),
+            is_closed=True,
+        )
+        lot2 = TradeLot(
+            account_id=account.id,
+            instrument_type="STOCK",
+            symbol="MSFT",
+            direction="LONG",
+            total_opened_quantity=Decimal("10"),
+            realized_pl=Decimal("200"),
+            is_closed=True,
+        )
+        db_session.add_all([lot1, lot2])
+        db_session.flush()
+
+        txn1 = Transaction(
+            snaptrade_id="txn-3",
+            account_id=account.id,
+            symbol="AAPL",
+            trade_date=date(2025, 1, 5),
+            type="SELL",
+            quantity=Decimal("10"),
+            amount=Decimal("1000"),
+        )
+        txn2 = Transaction(
+            snaptrade_id="txn-4",
+            account_id=account.id,
+            symbol="MSFT",
+            trade_date=date(2025, 1, 15),
+            type="SELL",
+            quantity=Decimal("10"),
+            amount=Decimal("2000"),
+        )
+        db_session.add_all([txn1, txn2])
+        db_session.flush()
+
+        leg1 = LotTransaction(
+            lot_id=lot1.id,
+            transaction_id=txn1.id,
+            allocated_quantity=Decimal("10"),
+            trade_date=date(2025, 1, 5),
+            leg_type="CLOSE",
+            price_per_contract=Decimal("10"),
+        )
+        leg2 = LotTransaction(
+            lot_id=lot2.id,
+            transaction_id=txn2.id,
+            allocated_quantity=Decimal("10"),
+            trade_date=date(2025, 1, 15),
+            leg_type="CLOSE",
+            price_per_contract=Decimal("10"),
+        )
+        db_session.add_all([leg1, leg2])
+        db_session.commit()
+
+        # Filter: only lots closed on/before Jan 10
+        result = lot_service.get_pl_summary(db_session, end_date=date(2025, 1, 10))
+
+        assert result["total_pl"] == Decimal("100")  # Only lot1
+        assert result["closed_count"] == 1

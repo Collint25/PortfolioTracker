@@ -715,11 +715,32 @@ def recalculate_all_pl(db: Session) -> int:
 # --- Summary Functions ---
 
 
-def get_pl_summary(db: Session, account_id: int | None = None) -> dict:
-    """Get P/L summary statistics."""
+def get_pl_summary(
+    db: Session,
+    account_id: int | None = None,
+    account_ids: list[int] | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> dict:
+    """Get P/L summary statistics with optional date filtering."""
     query = db.query(TradeLot)
 
     if account_id is not None:
         query = query.filter(TradeLot.account_id == account_id)
+    elif account_ids:
+        query = query.filter(TradeLot.account_id.in_(account_ids))
+
+    # Date filtering requires joining to LotTransaction to find close date
+    if start_date or end_date:
+        # Subquery: get lot IDs with closing leg in date range
+        closing_legs = db.query(LotTransaction.lot_id).filter(
+            LotTransaction.leg_type == "CLOSE"
+        )
+        if start_date:
+            closing_legs = closing_legs.filter(LotTransaction.trade_date >= start_date)
+        if end_date:
+            closing_legs = closing_legs.filter(LotTransaction.trade_date <= end_date)
+
+        query = query.filter(TradeLot.id.in_(closing_legs.scalar_subquery()))
 
     return pl_calcs.pl_summary(query.all())

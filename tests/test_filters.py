@@ -296,3 +296,33 @@ def test_build_filter_from_query_string_with_sort():
     result = build_filter_from_query_string("sort_by=symbol&sort_dir=asc")
     assert result.sort_by == "symbol"
     assert result.sort_dir == "asc"
+
+
+# Tests for build_filter_from_request
+
+
+def test_build_filter_from_request_empty():
+    """Test empty request returns default filter."""
+    from app.services.filters import build_filter_from_request
+
+    request = MagicMock()
+    request.query_params = {}
+    result = build_filter_from_request(request)
+    assert result.account_id is None
+    assert result.sort_by == "trade_date"
+
+
+def test_build_filter_from_request_with_params():
+    """Test request with params builds correct filter."""
+    from app.services.filters import build_filter_from_request
+
+    request = MagicMock()
+    request.query_params = {
+        "symbol": "MSFT",
+        "account_id": "2",
+        "is_option": "false",
+    }
+    result = build_filter_from_request(request)
+    assert result.symbol == "MSFT"
+    assert result.account_id == 2
+    assert result.is_option is False

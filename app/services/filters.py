@@ -184,3 +184,26 @@ def build_filter_from_query_string(query_string: str) -> TransactionFilter:
         sort_by=get_single("sort_by") or "trade_date",
         sort_dir=get_single("sort_dir") or "desc",
     )
+
+
+def build_filter_from_request(request: "Request") -> TransactionFilter:
+    """Build a TransactionFilter from request query params."""
+    params = request.query_params
+
+    def get(key: str) -> str | None:
+        return params.get(key) or None
+
+    return TransactionFilter(
+        account_id=parse_int_param(get("account_id")),
+        symbol=get("symbol"),
+        transaction_type=get("type"),
+        tag_id=parse_int_param(get("tag_id")),
+        start_date=parse_date_param(get("start_date")),
+        end_date=parse_date_param(get("end_date")),
+        search=get("search"),
+        is_option=parse_bool_param(get("is_option")),
+        option_type=get("option_type"),
+        option_action=get("option_action"),
+        sort_by=get("sort_by") or "trade_date",
+        sort_dir=get("sort_dir") or "desc",
+    )

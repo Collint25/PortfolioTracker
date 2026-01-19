@@ -14,6 +14,7 @@ from app.services.filters import (
     apply_pagination,
     apply_transaction_filters,
     apply_transaction_sorting,
+    build_filter_from_query_string,
     has_any_filter_params,
 )
 
@@ -256,3 +257,42 @@ def test_has_any_filter_params_page_only():
     request = MagicMock()
     request.query_params = {"page": "2"}
     assert has_any_filter_params(request) is False
+
+
+# Tests for build_filter_from_query_string
+
+
+def test_build_filter_from_empty_query_string():
+    """Test empty query string returns default filter."""
+    result = build_filter_from_query_string("")
+    assert result.account_id is None
+    assert result.symbol is None
+    assert result.sort_by == "trade_date"
+    assert result.sort_dir == "desc"
+
+
+def test_build_filter_from_query_string_basic():
+    """Test parsing basic filter params."""
+    result = build_filter_from_query_string("symbol=AAPL&account_id=1")
+    assert result.symbol == "AAPL"
+    assert result.account_id == 1
+
+
+def test_build_filter_from_query_string_with_dates():
+    """Test parsing date params."""
+    result = build_filter_from_query_string("start_date=2024-01-01&end_date=2024-12-31")
+    assert result.start_date == date(2024, 1, 1)
+    assert result.end_date == date(2024, 12, 31)
+
+
+def test_build_filter_from_query_string_with_bool():
+    """Test parsing boolean params."""
+    result = build_filter_from_query_string("is_option=true")
+    assert result.is_option is True
+
+
+def test_build_filter_from_query_string_with_sort():
+    """Test parsing sort params."""
+    result = build_filter_from_query_string("sort_by=symbol&sort_dir=asc")
+    assert result.sort_by == "symbol"
+    assert result.sort_dir == "asc"

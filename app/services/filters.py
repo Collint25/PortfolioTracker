@@ -3,12 +3,14 @@
 from dataclasses import dataclass
 from datetime import date
 from typing import TYPE_CHECKING
+from urllib.parse import parse_qs
 
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Query
 
 from app.models import TradeLot, Transaction
 from app.models.tag import transaction_tags
+from app.utils.query_params import parse_bool_param, parse_date_param, parse_int_param
 
 if TYPE_CHECKING:
     from starlette.requests import Request
@@ -154,3 +156,31 @@ TRANSACTION_FILTER_PARAMS = [
 def has_any_filter_params(request: "Request") -> bool:
     """Check if request has any filter params (excludes sort/page)."""
     return any(request.query_params.get(p) for p in TRANSACTION_FILTER_PARAMS)
+
+
+def build_filter_from_query_string(query_string: str) -> TransactionFilter:
+    """Parse a URL query string into a TransactionFilter."""
+    if not query_string:
+        return TransactionFilter()
+
+    # parse_qs returns lists, extract single values
+    parsed = parse_qs(query_string)
+
+    def get_single(key: str) -> str | None:
+        values = parsed.get(key, [])
+        return values[0] if values else None
+
+    return TransactionFilter(
+        account_id=parse_int_param(get_single("account_id")),
+        symbol=get_single("symbol") or None,
+        transaction_type=get_single("type") or None,
+        tag_id=parse_int_param(get_single("tag_id")),
+        start_date=parse_date_param(get_single("start_date")),
+        end_date=parse_date_param(get_single("end_date")),
+        search=get_single("search") or None,
+        is_option=parse_bool_param(get_single("is_option")),
+        option_type=get_single("option_type") or None,
+        option_action=get_single("option_action") or None,
+        sort_by=get_single("sort_by") or "trade_date",
+        sort_dir=get_single("sort_dir") or "desc",
+    )

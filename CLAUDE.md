@@ -17,11 +17,7 @@ Personal investment tracking app. Syncs from Fidelity via SnapTrade API.
 
 ## Documentation
 
-For architectural overview and system design:
-- See `/docs/onboarding.md` for architecture diagram and component descriptions
-- See `/docs/codebase_analysis.json` for machine-readable architecture data
-
-The docs provide high-level context on the "Sync-Process-Present" flow and how components like the Sync Orchestrator, Domain Logic Engine, and Transaction Manager interact.
+For architectural overview and system design, see `/docs/onboarding.md` for architecture diagram and component descriptions.
 
 ## Code Quality
 
@@ -72,8 +68,15 @@ When writing implementation plans:
 - app/models/ - SQLAlchemy models
 - app/services/ - business logic (keep thin, focused functions)
 - app/routers/ - FastAPI routes (thin, delegate to services)
+- app/calculations/ - pure P/L and position calculation functions
+- app/utils/ - request param parsing, helpers
 - app/templates/ - Jinja2 HTML
 - tests/ - pytest tests
+
+### Key services
+- `lot_service.py` - FIFO lot matching for stocks/options
+- `saved_filter_service.py` - CRUD for saved filters
+- `filters.py` - TransactionFilter dataclass + filter builders
 
 ## Code style
 - Small functions
@@ -95,6 +98,9 @@ SnapTrade API → sync service → SQLite → services → routes → HTMX parti
 - **Position** - Current holding (symbol, quantity, cost basis)
 - **Transaction** - Trade history (buy, sell, dividend, etc.)
 - **SecurityInfo** - Cached ticker metadata
+- **TradeLot** - tracks share/contract batches through open→close lifecycle
+- **LotTransaction** - links TradeLot to Transaction with quantity allocation
+- **SavedFilter** - named filters with favorite designation
 
 ### Sync strategy
 - Daily cron triggers full sync

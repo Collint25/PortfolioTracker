@@ -4,96 +4,87 @@ graph LR
     Sync_Orchestrator["Sync Orchestrator"]
     Domain_Logic_Engine["Domain Logic Engine"]
     Transaction_Manager["Transaction Manager"]
+    Filter_System["Filter System"]
+    Calculations["Calculations"]
     Market_Data_Service["Market Data Service"]
     Portfolio_Database["Portfolio Database"]
     External_Providers["External Providers"]
-    Unclassified["Unclassified"]
     Web_Interface -- "Triggers synchronization jobs based on user actions." --> Sync_Orchestrator
     Web_Interface -- "Requests filtered transaction history for display." --> Transaction_Manager
+    Web_Interface -- "Applies saved filters and manages favorites." --> Filter_System
     Sync_Orchestrator -- "Writes normalized account and transaction data." --> Portfolio_Database
-    Domain_Logic_Engine -- "Reads raw trades and writes linked trade associations." --> Portfolio_Database
+    Domain_Logic_Engine -- "Reads transactions, writes TradeLot associations via FIFO matching." --> Portfolio_Database
     Market_Data_Service -- "Fetches real-time pricing data." --> External_Providers
     Sync_Orchestrator -- "Connects to brokerage APIs for account history." --> External_Providers
     Transaction_Manager -- "Executes read-only queries for UI presentation." --> Portfolio_Database
+    Calculations -- "Computes P/L and position metrics." --> Portfolio_Database
+    Filter_System -- "Reads/writes SavedFilter configurations." --> Portfolio_Database
 ```
 
 ## Details
 
-The PortfolioTracker application employs a Service-Layer Architecture designed to separate the complexity of external data synchronization from user-facing portfolio management. The system operates on a "Sync-Process-Present" flow: raw financial data is ingested via the Sync Orchestrator, refined into meaningful strategies (like option spreads) by the Domain Logic Engine, and served to the user through a Web Interface powered by FastAPI and HTMX. This separation ensures that the heavy lifting of API integration and data normalization does not impact the responsiveness of the user interface, while the Portfolio Database acts as the central source of truth for both raw transactions and derived investment insights. The PortfolioTracker is a Hypermedia-Driven Application (HDA) where the server renders HTML directly, leveraging FastAPI for the backend and HTMX for dynamic interactivity. The architecture is centered around a robust Service Layer that isolates business logic from the HTTP transport layer. Data flows from External Providers into the Portfolio Database via the Sync Orchestrator, where it is subsequently refined by the Domain Logic Engine into high-level concepts like "Linked Trades" and "Trade Groups." The Web Interface remains thin, primarily orchestrating these services to render views, ensuring a clean separation between data ingestion, domain processing, and user presentation.
+The PortfolioTracker application employs a Service-Layer Architecture designed to separate the complexity of external data synchronization from user-facing portfolio management. The system operates on a "Sync-Process-Present" flow: raw financial data is ingested via the Sync Orchestrator, refined into meaningful trade lots by the Domain Logic Engine, and served to the user through a Web Interface powered by FastAPI and HTMX.
+
+This separation ensures that the heavy lifting of API integration and data normalization does not impact the responsiveness of the user interface, while the Portfolio Database acts as the central source of truth for both raw transactions and derived investment insights.
 
 ### Web Interface
 The user-facing layer handling HTTP requests, rendering Jinja2 templates, and managing HTMX partial updates. It acts as the controller, delegating logic to services.
 
-
-**Related Classes/Methods**:
-
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/routers/sync.py" target="_blank" rel="noopener noreferrer">`app/routers/sync.py`</a>
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/routers/transactions.py" target="_blank" rel="noopener noreferrer">`app/routers/transactions.py`</a>
-
+**Related Files:**
+- `app/routers/sync.py`
+- `app/routers/transactions.py`
+- `app/routers/api.py` - autocomplete endpoints
 
 ### Sync Orchestrator
 The core write-service responsible for synchronizing local state with external brokerage accounts. It handles API authentication, data fetching, and normalization.
 
-
-**Related Classes/Methods**:
-
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/services/sync_service.py" target="_blank" rel="noopener noreferrer">`app/services/sync_service.py`</a>
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/services/snaptrade_client.py" target="_blank" rel="noopener noreferrer">`app/services/snaptrade_client.py`</a>
-
+**Related Files:**
+- `app/services/sync_service.py`
+- `app/services/snaptrade_client.py`
 
 ### Domain Logic Engine
-Encapsulates complex business logic for organizing raw trades into meaningful portfolios. This includes auto-linking option legs and managing user-defined trade groups.
+Encapsulates business logic for organizing raw trades into meaningful portfolios. The TradeLot system tracks share/contract batches through their open→close lifecycle using FIFO matching. LotTransaction records link individual transactions to lots with quantity allocations.
 
-
-**Related Classes/Methods**:
-
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/services/linked_trade_service.py" target="_blank" rel="noopener noreferrer">`app/services/linked_trade_service.py`</a>
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/services/trade_group_service.py" target="_blank" rel="noopener noreferrer">`app/services/trade_group_service.py`</a>
-
+**Related Files:**
+- `app/services/lot_service.py` - FIFO lot matching for stocks/options
+- `app/models/trade_lot.py` - TradeLot and LotTransaction models
 
 ### Transaction Manager
 A read-optimized service providing filtered, sorted, and paginated transaction data to the UI. It abstracts complex database queries.
 
+**Related Files:**
+- `app/services/transaction_service.py`
 
-**Related Classes/Methods**:
+### Filter System
+Manages SavedFilter configurations, allowing users to save named filter presets with favorite designation. Favorite filters are auto-applied on page load.
 
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/services/transaction_service.py" target="_blank" rel="noopener noreferrer">`app/services/transaction_service.py`</a>
+**Related Files:**
+- `app/services/saved_filter_service.py` - CRUD for saved filters
+- `app/services/filters.py` - TransactionFilter dataclass + filter builders
+- `app/models/saved_filter.py`
 
+### Calculations
+Pure functions for computing profit/loss and position metrics. Separated from services to enable isolated testing and reuse.
+
+**Related Files:**
+- `app/calculations/` - P/L and position calculation functions
 
 ### Market Data Service
 A specialized service for fetching and caching real-time asset prices and historical market data to value positions.
 
-
-**Related Classes/Methods**:
-
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/services/market_data_service.py" target="_blank" rel="noopener noreferrer">`app/services/market_data_service.py`</a>
-
+**Related Files:**
+- `app/services/market_data_service.py`
 
 ### Portfolio Database
-The relational data store (SQLite/SQLAlchemy) holding all application state, from raw account data to derived trade groupings.
+The relational data store (SQLite/SQLAlchemy) holding all application state, from raw account data to trade lot associations.
 
-
-**Related Classes/Methods**:
-
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/models/transaction.py" target="_blank" rel="noopener noreferrer">`app/models/transaction.py`</a>
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/models/linked_trade.py" target="_blank" rel="noopener noreferrer">`app/models/linked_trade.py`</a>
-
+**Related Files:**
+- `app/models/transaction.py`
+- `app/models/trade_lot.py` - TradeLot and LotTransaction
+- `app/models/saved_filter.py`
 
 ### External Providers
 Third-party APIs providing financial data and brokerage connections.
 
-
-**Related Classes/Methods**:
-
-- <a href="https://github.com/Collint25/PortfolioTracker/blob/main/app/services/snaptrade_client.py#L6-L12" target="_blank" rel="noopener noreferrer">`SnapTrade API`:6-12</a>
-
-
-### Unclassified
-Component for all unclassified files and utility functions (Utility functions/External Libraries/Dependencies)
-
-
-**Related Classes/Methods**: _None_
-
-
-
-### [FAQ](https://github.com/CodeBoarding/GeneratedOnBoardings/tree/main?tab=readme-ov-file#faq)
+**Related Files:**
+- `app/services/snaptrade_client.py` - SnapTrade API client

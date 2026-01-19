@@ -13,9 +13,11 @@ from app.services import (
     tag_service,
     transaction_service,
 )
-from app.services.filters import PaginationParams, TransactionFilter
+from app.services.filters import (
+    PaginationParams,
+    get_effective_transaction_filter,
+)
 from app.utils.htmx import htmx_response
-from app.utils.query_params import parse_bool_param, parse_date_param, parse_int_param
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -68,45 +70,13 @@ def build_filter_query_string(
 def list_transactions(
     request: Request,
     db: Session = Depends(get_db),
-    account_id: str | None = Query(None),
-    symbol: str | None = Query(None),
-    type: str | None = Query(None),
-    tag_id: str | None = Query(None),
-    start_date: str | None = Query(None),
-    end_date: str | None = Query(None),
-    search: str | None = Query(None),
-    is_option: str | None = Query(None),
-    option_type: str | None = Query(None),
-    option_action: str | None = Query(None),
-    sort_by: str = "trade_date",
-    sort_dir: str = "desc",
     page: int = Query(1, ge=1),
 ) -> Response:
     """List transactions with filtering, sorting, and pagination."""
     per_page = 50
 
-    # Parse query params
-    account_id_int = parse_int_param(account_id)
-    tag_id_int = parse_int_param(tag_id)
-    is_option_val = parse_bool_param(is_option)
-    start_date_val = parse_date_param(start_date)
-    end_date_val = parse_date_param(end_date)
-
-    # Build filter object
-    filters = TransactionFilter(
-        account_id=account_id_int,
-        symbol=symbol or None,
-        transaction_type=type or None,
-        tag_id=tag_id_int,
-        start_date=start_date_val,
-        end_date=end_date_val,
-        search=search or None,
-        is_option=is_option_val,
-        option_type=option_type or None,
-        option_action=option_action or None,
-        sort_by=sort_by,
-        sort_dir=sort_dir,
-    )
+    # Get effective filter (from request params or favorite)
+    filters, applied_favorite = get_effective_transaction_filter(request, db)
 
     # Build pagination object
     pagination = PaginationParams(page=page, per_page=per_page)
@@ -126,18 +96,20 @@ def list_transactions(
 
     # Build query string for saved filters and table links
     filter_query_string = build_filter_query_string(
-        search=search,
-        account_id=account_id_int,
-        symbol=symbol,
-        type=type,
-        tag_id=tag_id_int,
-        start_date=start_date,
-        end_date=end_date,
-        is_option=is_option,
-        option_type=option_type,
-        option_action=option_action,
-        sort_by=sort_by,
-        sort_dir=sort_dir,
+        search=filters.search,
+        account_id=filters.account_id,
+        symbol=filters.symbol,
+        type=filters.transaction_type,
+        tag_id=filters.tag_id,
+        start_date=str(filters.start_date) if filters.start_date else None,
+        end_date=str(filters.end_date) if filters.end_date else None,
+        is_option=(
+            str(filters.is_option).lower() if filters.is_option is not None else None
+        ),
+        option_type=filters.option_type,
+        option_action=filters.option_action,
+        sort_by=filters.sort_by,
+        sort_dir=filters.sort_dir,
     )
 
     # Get saved filters for this page
@@ -157,19 +129,22 @@ def list_transactions(
         "option_actions": option_actions,
         "saved_filters": saved_filters,
         "filter_query_string": filter_query_string,
-        # Current filter values
-        "current_account_id": account_id_int,
-        "current_symbol": symbol,
-        "current_type": type,
-        "current_tag_id": tag_id_int,
-        "current_start_date": start_date_val,
-        "current_end_date": end_date_val,
-        "current_search": search,
-        "current_is_option": is_option,
-        "current_option_type": option_type,
-        "current_option_action": option_action,
-        "current_sort_by": sort_by,
-        "current_sort_dir": sort_dir,
+        "applied_favorite": applied_favorite,
+        # Current filter values for form
+        "current_account_id": filters.account_id,
+        "current_symbol": filters.symbol,
+        "current_type": filters.transaction_type,
+        "current_tag_id": filters.tag_id,
+        "current_start_date": filters.start_date,
+        "current_end_date": filters.end_date,
+        "current_search": filters.search,
+        "current_is_option": (
+            str(filters.is_option).lower() if filters.is_option is not None else None
+        ),
+        "current_option_type": filters.option_type,
+        "current_option_action": filters.option_action,
+        "current_sort_by": filters.sort_by,
+        "current_sort_dir": filters.sort_dir,
         "title": "Transactions",
     }
 

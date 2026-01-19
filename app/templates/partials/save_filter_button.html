@@ -1,0 +1,13 @@
+<button
+    id="save-filter-btn"
+    class="btn btn-ghost btn-xs"
+    onclick="document.getElementById('save-filter-modal').showModal()"
+    {% if not filter_query_string %}disabled{% endif %}
+    title="{{ 'Save current filter settings' if filter_query_string else 'Apply filters first to save' }}"
+    {% if oob %}hx-swap-oob="outerHTML"{% endif %}
+>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    Save Current
+</button>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -44,7 +44,10 @@ def create_saved_filter(
 
 @router.post("/{filter_id}/favorite", response_class=HTMLResponse)
 def toggle_favorite(
-    request: Request, filter_id: int, db: Session = Depends(get_db)
+    request: Request,
+    filter_id: int,
+    db: Session = Depends(get_db),
+    filter_query_string: str = Query(""),
 ) -> HTMLResponse:
     """Toggle favorite status for a filter."""
     saved_filter = saved_filter_service.get_filter_by_id(db, filter_id)
@@ -61,13 +64,20 @@ def toggle_favorite(
     return templates.TemplateResponse(
         request=request,
         name="partials/saved_filter_list.html",
-        context={"saved_filters": filters, "filter_page": page},
+        context={
+            "saved_filters": filters,
+            "filter_page": page,
+            "filter_query_string": filter_query_string,
+        },
     )
 
 
 @router.delete("/{filter_id}", response_class=HTMLResponse)
 def delete_saved_filter(
-    request: Request, filter_id: int, db: Session = Depends(get_db)
+    request: Request,
+    filter_id: int,
+    db: Session = Depends(get_db),
+    filter_query_string: str = Query(""),
 ) -> HTMLResponse:
     """Delete a saved filter."""
     saved_filter = saved_filter_service.get_filter_by_id(db, filter_id)
@@ -80,5 +90,9 @@ def delete_saved_filter(
     return templates.TemplateResponse(
         request=request,
         name="partials/saved_filter_list.html",
-        context={"saved_filters": filters, "filter_page": page},
+        context={
+            "saved_filters": filters,
+            "filter_page": page,
+            "filter_query_string": filter_query_string,
+        },
     )

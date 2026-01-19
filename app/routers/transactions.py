@@ -17,7 +17,7 @@ from app.services.filters import (
     PaginationParams,
     get_effective_transaction_filter,
 )
-from app.utils.htmx import htmx_response
+from app.utils.htmx import htmx_response, is_htmx_request
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -71,12 +71,24 @@ def list_transactions(
     request: Request,
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1),
+    clear_favorite: bool = Query(False),
 ) -> Response:
     """List transactions with filtering, sorting, and pagination."""
     per_page = 50
 
-    # Get effective filter (from request params or favorite)
-    filters, applied_favorite = get_effective_transaction_filter(request, db)
+    # Handle clearing the favorite filter
+    if clear_favorite:
+        favorite = saved_filter_service.get_favorite_filter(db, "transactions")
+        if favorite:
+            saved_filter_service.clear_favorite(db, favorite.id)
+        # Use default filters, no favorite applied
+        from app.services.filters import TransactionFilter
+
+        filters = TransactionFilter()
+        applied_favorite = None
+    else:
+        # Get effective filter (from request params or favorite)
+        filters, applied_favorite = get_effective_transaction_filter(request, db)
 
     # Build pagination object
     pagination = PaginationParams(page=page, per_page=per_page)
@@ -146,6 +158,7 @@ def list_transactions(
         "current_sort_by": filters.sort_by,
         "current_sort_dir": filters.sort_dir,
         "title": "Transactions",
+        "is_htmx": is_htmx_request(request),
     }
 
     # Use helper for HTMX response

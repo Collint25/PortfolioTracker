@@ -55,11 +55,12 @@
             id="filter-form"
             hx-get="/transactions"
             hx-target="#transaction-table"
-            hx-trigger="submit, change from:select"
+            hx-trigger="filterChanged from:body"
             hx-push-url="true"
+            hx-indicator="#table-loading"
         >
-            <!-- Primary Filters Row -->
-            <div class="flex flex-wrap gap-3 items-end">
+            <!-- Row 1: Primary Filters -->
+            <div class="flex flex-wrap gap-3 items-end mb-3">
                 <!-- Search -->
                 <div class="form-control w-48">
                     <label class="label py-1"><span class="label-text text-xs">Search</span></label>
@@ -69,13 +70,33 @@
                         value="{{ current_search or '' }}"
                         placeholder="Symbol or description"
                         class="input input-bordered input-sm"
+                        oninput="debouncedFilterChange()"
                     />
                 </div>
 
-                <!-- Account -->
+                <!-- Symbol (chip multi-select with autocomplete) -->
+                {% from "macros/chip_multiselect.html" import chip_multiselect %}
+                {{ chip_multiselect(
+                    name="symbol",
+                    label="Symbol",
+                    values=current_symbols,
+                    mode=current_symbol_mode,
+                    autocomplete_url="/api/symbols"
+                ) }}
+
+                <!-- Type (chip multi-select with dropdown) -->
+                {{ chip_multiselect(
+                    name="type",
+                    label="Type",
+                    values=current_types,
+                    mode=current_type_mode,
+                    options=types
+                ) }}
+
+                <!-- Account (single select) -->
                 <div class="form-control w-40">
                     <label class="label py-1"><span class="label-text text-xs">Account</span></label>
-                    <select name="account_id" class="select select-bordered select-sm">
+                    <select name="account_id" class="select select-bordered select-sm" onchange="dispatchFilterChanged()">
                         <option value="">All</option>
                         {% for account in accounts %}
                         <option value="{{ account.id }}" {{ 'selected' if current_account_id == account.id else '' }}>
@@ -84,104 +105,79 @@
                         {% endfor %}
                     </select>
                 </div>
+            </div>
 
-                <!-- Symbol -->
-                <div class="form-control w-32">
-                    <label class="label py-1"><span class="label-text text-xs">Symbol</span></label>
-                    <select name="symbol" class="select select-bordered select-sm">
-                        <option value="">All</option>
-                        {% for sym in symbols %}
-                        <option value="{{ sym }}" {{ 'selected' if current_symbol == sym else '' }}>{{ sym }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Type -->
-                <div class="form-control w-28">
-                    <label class="label py-1"><span class="label-text text-xs">Type</span></label>
-                    <select name="type" class="select select-bordered select-sm">
-                        <option value="">All</option>
-                        {% for t in types %}
-                        <option value="{{ t }}" {{ 'selected' if current_type == t else '' }}>{{ t }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
+            <!-- Row 2: Refinement Filters -->
+            <div class="flex flex-wrap gap-3 items-end pt-3 border-t border-base-200">
                 <!-- Date Range -->
                 <div class="form-control w-36">
                     <label class="label py-1"><span class="label-text text-xs">From</span></label>
-                    <input type="date" name="start_date" value="{{ current_start_date or '' }}" class="input input-bordered input-sm" />
+                    <input
+                        type="date"
+                        name="start_date"
+                        value="{{ current_start_date or '' }}"
+                        class="input input-bordered input-sm"
+                        onchange="dispatchFilterChanged()"
+                    />
                 </div>
 
                 <div class="form-control w-36">
                     <label class="label py-1"><span class="label-text text-xs">To</span></label>
-                    <input type="date" name="end_date" value="{{ current_end_date or '' }}" class="input input-bordered input-sm" />
+                    <input
+                        type="date"
+                        name="end_date"
+                        value="{{ current_end_date or '' }}"
+                        class="input input-bordered input-sm"
+                        onchange="dispatchFilterChanged()"
+                    />
                 </div>
 
-                <!-- Apply Button -->
-                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                <!-- Options Group -->
+                <div class="flex items-end gap-2 px-3 py-2 bg-base-200 rounded-lg">
+                    <span class="text-xs text-base-content/70 font-medium self-center">Options:</span>
 
-                <!-- Toggle Advanced -->
-                <button
-                    type="button"
-                    class="btn btn-ghost btn-sm"
-                    onclick="document.getElementById('advanced-filters').classList.toggle('hidden')"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                    More
-                </button>
-            </div>
-
-            <!-- Advanced Filters (Collapsible) -->
-            <div id="advanced-filters" class="{{ '' if current_is_option or current_option_type or current_option_action or current_tag_id else 'hidden' }} mt-4 pt-4 border-t border-base-300">
-                <div class="flex flex-wrap gap-3 items-end">
-                    <!-- Options Group -->
-                    <div class="flex items-end gap-2 px-3 py-2 bg-base-200 rounded-lg">
-                        <span class="text-xs text-base-content/70 font-medium self-center">Options:</span>
-
-                        <div class="form-control w-28">
-                            <select name="is_option" class="select select-bordered select-sm">
-                                <option value="">All</option>
-                                <option value="true" {{ 'selected' if current_is_option == 'true' else '' }}>Options</option>
-                                <option value="false" {{ 'selected' if current_is_option == 'false' else '' }}>Stocks</option>
-                            </select>
-                        </div>
-
-                        <div class="form-control w-24">
-                            <select name="option_type" class="select select-bordered select-sm">
-                                <option value="">C/P</option>
-                                {% for ot in option_types %}
-                                <option value="{{ ot }}" {{ 'selected' if current_option_type == ot else '' }}>{{ ot }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <div class="form-control w-36">
-                            <select name="option_action" class="select select-bordered select-sm">
-                                <option value="">Action</option>
-                                {% for oa in option_actions %}
-                                <option value="{{ oa }}" {{ 'selected' if current_option_action == oa else '' }}>{{ oa.replace('_', ' ') }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    <div class="form-control w-28">
+                        <select name="is_option" class="select select-bordered select-sm" onchange="dispatchFilterChanged()">
+                            <option value="">All</option>
+                            <option value="true" {{ 'selected' if current_is_option == 'true' else '' }}>Options</option>
+                            <option value="false" {{ 'selected' if current_is_option == 'false' else '' }}>Stocks</option>
+                        </select>
                     </div>
 
-                    <!-- Tag -->
-                    <div class="form-control w-32">
-                        <label class="label py-1"><span class="label-text text-xs">Tag</span></label>
-                        <select name="tag_id" class="select select-bordered select-sm">
-                            <option value="">All Tags</option>
-                            {% for tag in tags %}
-                            <option value="{{ tag.id }}" {{ 'selected' if current_tag_id == tag.id else '' }}>{{ tag.name }}</option>
+                    <div class="form-control w-24">
+                        <select name="option_type" class="select select-bordered select-sm" onchange="dispatchFilterChanged()">
+                            <option value="">C/P</option>
+                            {% for ot in option_types %}
+                            <option value="{{ ot }}" {{ 'selected' if current_option_type == ot else '' }}>{{ ot }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <!-- Clear Filters -->
-                    <a href="/transactions" class="btn btn-ghost btn-sm text-error">Clear All</a>
+                    <div class="form-control w-36">
+                        <select name="option_action" class="select select-bordered select-sm" onchange="dispatchFilterChanged()">
+                            <option value="">Action</option>
+                            {% for oa in option_actions %}
+                            <option value="{{ oa }}" {{ 'selected' if current_option_action == oa else '' }}>{{ oa.replace('_', ' ') }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
+
+                <!-- Tag (chip multi-select) -->
+                {% set tag_options = [] %}
+                {% for tag in tags %}
+                    {% set _ = tag_options.append({'value': tag.id|string, 'label': tag.name}) %}
+                {% endfor %}
+                {{ chip_multiselect(
+                    name="tag_id",
+                    label="Tag",
+                    values=current_tag_ids|map('string')|list,
+                    mode=current_tag_mode,
+                    options=tag_options
+                ) }}
+
+                <!-- Clear Filters -->
+                <a href="/transactions" class="btn btn-ghost btn-sm text-error ml-auto">Clear All</a>
             </div>
 
             <!-- Hidden sort fields -->
@@ -189,6 +185,11 @@
             <input type="hidden" name="sort_dir" value="{{ current_sort_dir }}" />
         </form>
     </div>
+</div>
+
+<!-- Loading indicator -->
+<div id="table-loading" class="htmx-indicator flex justify-center py-4">
+    <span class="loading loading-spinner loading-md"></span>
 </div>
 
 <!-- Transaction table -->

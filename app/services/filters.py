@@ -2,12 +2,16 @@
 
 from dataclasses import dataclass
 from datetime import date
+from typing import TYPE_CHECKING
 
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Query
 
 from app.models import TradeLot, Transaction
 from app.models.tag import transaction_tags
+
+if TYPE_CHECKING:
+    from starlette.requests import Request
 
 
 @dataclass
@@ -130,3 +134,23 @@ def apply_lot_filters(query: Query, filters: LotFilter) -> Query:
 def apply_pagination(query: Query, pagination: PaginationParams) -> Query:
     """Apply pagination to a query."""
     return query.offset(pagination.offset).limit(pagination.per_page)
+
+
+# Filter param names (excludes sort_by, sort_dir, page which are not filters)
+TRANSACTION_FILTER_PARAMS = [
+    "account_id",
+    "symbol",
+    "type",
+    "tag_id",
+    "start_date",
+    "end_date",
+    "search",
+    "is_option",
+    "option_type",
+    "option_action",
+]
+
+
+def has_any_filter_params(request: "Request") -> bool:
+    """Check if request has any filter params (excludes sort/page)."""
+    return any(request.query_params.get(p) for p in TRANSACTION_FILTER_PARAMS)

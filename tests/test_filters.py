@@ -2,6 +2,7 @@
 
 from datetime import date
 from decimal import Decimal
+from unittest.mock import MagicMock
 
 import pytest
 from sqlalchemy.orm import Session
@@ -13,6 +14,7 @@ from app.services.filters import (
     apply_pagination,
     apply_transaction_filters,
     apply_transaction_sorting,
+    has_any_filter_params,
 )
 
 
@@ -223,3 +225,34 @@ def test_combined_filters(db_session: Session, sample_transactions: list[Transac
     results = query.all()
     assert len(results) == 1
     assert results[0].symbol == "AAPL"
+
+
+# Tests for has_any_filter_params
+
+
+def test_has_any_filter_params_empty():
+    """Test with no params returns False."""
+    request = MagicMock()
+    request.query_params = {}
+    assert has_any_filter_params(request) is False
+
+
+def test_has_any_filter_params_with_filter():
+    """Test with filter param returns True."""
+    request = MagicMock()
+    request.query_params = {"symbol": "AAPL"}
+    assert has_any_filter_params(request) is True
+
+
+def test_has_any_filter_params_sort_only():
+    """Test with only sort params returns False (sort is not a filter)."""
+    request = MagicMock()
+    request.query_params = {"sort_by": "symbol", "sort_dir": "asc"}
+    assert has_any_filter_params(request) is False
+
+
+def test_has_any_filter_params_page_only():
+    """Test with only page param returns False."""
+    request = MagicMock()
+    request.query_params = {"page": "2"}
+    assert has_any_filter_params(request) is False

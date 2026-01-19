@@ -1,0 +1,65 @@
+{% macro chip_multiselect(name, label, values, selected, mode, autocomplete_url=None, options=None) %}
+{#
+  Chip-based multi-select component with include/exclude toggle.
+
+  Args:
+    name: Field name for form submission (e.g., "symbol")
+    label: Display label (e.g., "Symbol")
+    values: Currently selected values (list)
+    selected: Alias for values (backward compat)
+    mode: "include" or "exclude"
+    autocomplete_url: URL for autocomplete (for symbol field)
+    options: Static list of options (for type/tag fields)
+#}
+<div class="form-control flex-1 min-w-[200px]" data-multiselect="{{ name }}">
+  <div class="flex justify-between items-center">
+    <label class="label py-1"><span class="label-text text-xs">{{ label }}</span></label>
+    <select
+      name="{{ name }}_mode"
+      class="select select-xs w-24 h-6 min-h-0"
+      onchange="dispatchFilterChanged()"
+    >
+      <option value="include" {{ 'selected' if mode == 'include' else '' }}>Include</option>
+      <option value="exclude" {{ 'selected' if mode == 'exclude' else '' }}>Exclude</option>
+    </select>
+  </div>
+
+  <div class="flex flex-wrap gap-1 p-2 border rounded-lg border-base-300 bg-base-100 min-h-[2.5rem] items-center">
+    {# Render existing chips #}
+    {% for val in (values or selected or []) %}
+    <span class="badge {{ 'badge-success' if mode == 'include' else 'badge-error' }} gap-1 chip" data-value="{{ val }}">
+      {{ val }}
+      <button type="button" onclick="removeChip(this)" class="hover:text-base-content/50">&times;</button>
+      <input type="hidden" name="{{ name }}" value="{{ val }}" />
+    </span>
+    {% endfor %}
+
+    {# Input for adding new chips #}
+    {% if autocomplete_url %}
+    <input
+      type="text"
+      class="flex-1 min-w-[80px] bg-transparent outline-none text-sm chip-input"
+      placeholder="Add {{ label|lower }}..."
+      data-autocomplete="{{ autocomplete_url }}"
+      data-name="{{ name }}"
+      autocomplete="off"
+    />
+    {% elif options %}
+    <div class="dropdown dropdown-end flex-1">
+      <label tabindex="0" class="text-sm text-base-content/50 cursor-pointer hover:text-base-content">
+        + Add {{ label|lower }}
+      </label>
+      <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-40 max-h-60 overflow-y-auto">
+        {% for opt in options %}
+        <li>
+          <a onclick="addChip('{{ name }}', '{{ opt.value if opt.value is defined else opt }}', '{{ opt.label if opt.label is defined else opt }}', this)">
+            {{ opt.label if opt.label is defined else opt }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}

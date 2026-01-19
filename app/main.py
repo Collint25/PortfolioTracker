@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from app.logging_config import configure_logging
 from app.routers import (
     accounts,
+    analytics,
     api,
     comments,
     lots,
@@ -24,6 +25,7 @@ templates = Jinja2Templates(directory="app/templates")
 # Routers
 app.include_router(pages.router)
 app.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
+app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 app.include_router(sync.router, prefix="/sync", tags=["sync"])
 app.include_router(transactions.router, prefix="/transactions", tags=["transactions"])
 app.include_router(tags.router, prefix="/tags", tags=["tags"])

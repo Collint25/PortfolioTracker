@@ -51,6 +51,15 @@ class LotFilter:
 
 
 @dataclass
+class AnalyticsFilter:
+    """Filter criteria for analytics queries."""
+
+    account_id: int | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+
+
+@dataclass
 class PaginationParams:
     """Pagination parameters."""
 
@@ -297,3 +306,26 @@ def get_effective_transaction_filter(
         return build_filter_from_query_string(favorite.filter_json), favorite
 
     return TransactionFilter(), None
+
+
+def build_lot_filter_from_request(request: "Request") -> LotFilter:
+    """Build a LotFilter from request query params."""
+    params = request.query_params
+
+    return LotFilter(
+        account_id=parse_int_param(params.get("account_id")),
+        symbol=params.get("symbol") or None,
+        instrument_type=params.get("instrument_type") or None,
+        is_closed=parse_bool_param(params.get("is_closed")),
+    )
+
+
+def build_analytics_filter_from_request(request: "Request") -> AnalyticsFilter:
+    """Build an AnalyticsFilter from request query params."""
+    params = request.query_params
+
+    return AnalyticsFilter(
+        account_id=parse_int_param(params.get("account_id")),
+        start_date=parse_date_param(params.get("start_date")),
+        end_date=parse_date_param(params.get("end_date")),
+    )

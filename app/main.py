@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.logging_config import configure_logging
@@ -19,6 +20,9 @@ from app.routers import (
 configure_logging()
 
 app = FastAPI(title="Portfolio Tracker")
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(directory="app/templates")
 

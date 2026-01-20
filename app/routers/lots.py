@@ -7,9 +7,12 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services import account_service, lot_service
-from app.services.filters import LotFilter, PaginationParams
+from app.services.filters import (
+    LotFilter,
+    PaginationParams,
+    build_lot_filter_from_request,
+)
 from app.utils.htmx import htmx_response
-from app.utils.query_params import parse_bool_param
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -19,27 +22,15 @@ templates = Jinja2Templates(directory="app/templates")
 def list_lots(
     request: Request,
     db: Session = Depends(get_db),
-    account_id: int | None = Query(None),
-    symbol: str | None = Query(None),
-    instrument_type: str | None = Query(None),
-    is_closed: str | None = Query(None),
     page: int = Query(1, ge=1),
 ):
     """List all lots with filters."""
-    closed_filter = parse_bool_param(is_closed)
-
-    # Build filter and pagination objects
-    filters = LotFilter(
-        account_id=account_id,
-        symbol=symbol,
-        instrument_type=instrument_type,
-        is_closed=closed_filter,
-    )
+    filters = build_lot_filter_from_request(request)
     pagination = PaginationParams(page=page, per_page=50)
 
     lots, total = lot_service.get_all_lots(db, filters, pagination)
 
-    summary = lot_service.get_pl_summary(db, account_id)
+    summary = lot_service.get_pl_summary(db, filters.account_id)
     symbols = lot_service.get_unique_symbols(db)
     accounts = account_service.get_all_accounts(db)
     total_pages = (total + 49) // 50
@@ -49,12 +40,7 @@ def list_lots(
         "summary": summary,
         "symbols": symbols,
         "accounts": accounts,
-        "filters": {
-            "account_id": account_id,
-            "symbol": symbol,
-            "instrument_type": instrument_type,
-            "is_closed": is_closed,
-        },
+        "filters": filters,
         "page": page,
         "total_pages": total_pages,
         "total": total,
@@ -104,7 +90,6 @@ def run_auto_match(
     """Run FIFO auto-matching on all unlinked transactions."""
     result = lot_service.match_all(db, account_id)
 
-    # Build filter object
     filters = LotFilter(account_id=account_id)
     lots, total = lot_service.get_all_lots(db, filters)
     summary = lot_service.get_pl_summary(db, account_id)
@@ -117,12 +102,7 @@ def run_auto_match(
         "summary": summary,
         "symbols": symbols,
         "accounts": accounts,
-        "filters": {
-            "account_id": account_id,
-            "symbol": None,
-            "instrument_type": None,
-            "is_closed": None,
-        },
+        "filters": filters,
         "page": 1,
         "total_pages": (total + 49) // 50,
         "total": total,
@@ -141,7 +121,6 @@ def run_full_rematch(
     """Delete all lots and rebuild from scratch."""
     result = lot_service.rematch_all(db, account_id)
 
-    # Build filter object
     filters = LotFilter(account_id=account_id)
     lots, total = lot_service.get_all_lots(db, filters)
     summary = lot_service.get_pl_summary(db, account_id)
@@ -154,12 +133,7 @@ def run_full_rematch(
         "summary": summary,
         "symbols": symbols,
         "accounts": accounts,
-        "filters": {
-            "account_id": account_id,
-            "symbol": None,
-            "instrument_type": None,
-            "is_closed": None,
-        },
+        "filters": filters,
         "page": 1,
         "total_pages": (total + 49) // 50,
         "total": total,

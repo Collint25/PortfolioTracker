@@ -83,8 +83,8 @@
                 <label class="label py-1"><span class="label-text">Status</span></label>
                 <select name="is_closed" class="select select-bordered select-sm">
                     <option value="">All</option>
-                    <option value="true" {% if filters.is_closed == 'true' %}selected{% endif %}>Closed</option>
-                    <option value="false" {% if filters.is_closed == 'false' %}selected{% endif %}>Open</option>
+                    <option value="true" {% if filters.is_closed == true %}selected{% endif %}>Closed</option>
+                    <option value="false" {% if filters.is_closed == false %}selected{% endif %}>Open</option>
                 </select>
             </div>
             <button type="submit" class="btn btn-sm btn-outline">Filter</button>

@@ -1,7 +1,5 @@
 """Router for analytics dashboard."""
 
-from datetime import date
-
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -11,6 +9,7 @@ from app.database import get_db
 from app.services import account_service
 from app.services.metrics_service import get_metrics
 from app.utils.htmx import htmx_response
+from app.utils.query_params import parse_date_param, parse_int_param
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -20,19 +19,24 @@ templates = Jinja2Templates(directory="app/templates")
 def analytics_page(
     request: Request,
     db: Session = Depends(get_db),
-    account_id: int | None = Query(None),
-    start_date: date | None = Query(None),
-    end_date: date | None = Query(None),
+    account_id: str | None = Query(None),
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
 ):
     """Analytics dashboard with P/L metrics and charts."""
+    # Parse form values (empty strings become None)
+    parsed_account_id = parse_int_param(account_id)
+    parsed_start = parse_date_param(start_date)
+    parsed_end = parse_date_param(end_date)
+
     # Convert single account_id to list for metrics service
-    account_ids = [account_id] if account_id else None
+    account_ids = [parsed_account_id] if parsed_account_id else None
 
     metrics = get_metrics(
         db,
         account_ids=account_ids,
-        start_date=start_date,
-        end_date=end_date,
+        start_date=parsed_start,
+        end_date=parsed_end,
     )
 
     accounts = account_service.get_all_accounts(db)
@@ -47,9 +51,9 @@ def analytics_page(
         "chart_labels": chart_labels,
         "chart_data": chart_data,
         "filters": {
-            "account_id": account_id,
-            "start_date": start_date.isoformat() if start_date else None,
-            "end_date": end_date.isoformat() if end_date else None,
+            "account_id": parsed_account_id,
+            "start_date": parsed_start.isoformat() if parsed_start else None,
+            "end_date": parsed_end.isoformat() if parsed_end else None,
         },
     }
 

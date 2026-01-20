@@ -7,7 +7,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.calculations import gain_loss, pl_over_time
-from app.models import Position, TradeLot
+from app.models import LotTransaction, Position, TradeLot
 from app.services import lot_service
 
 
@@ -46,6 +46,7 @@ class MetricsResult:
 
     summary: MetricsSummary
     pl_over_time: list[PLDataPoint]
+    closed_lots: list[TradeLot]
     filters_applied: MetricsFilter
 
 
@@ -79,9 +80,19 @@ def get_metrics(
     query = db.query(TradeLot).filter(TradeLot.is_closed == True)  # noqa: E712
     if account_ids:
         query = query.filter(TradeLot.account_id.in_(account_ids))
-    # Note: date filtering for time series would need same subquery logic
-    # For MVP, we show all closed lots in time series
-    lots = query.all()
+
+    # Date filtering: find lots with closing leg in date range
+    if start_date or end_date:
+        closing_legs = db.query(LotTransaction.lot_id).filter(
+            LotTransaction.leg_type == "CLOSE"
+        )
+        if start_date:
+            closing_legs = closing_legs.filter(LotTransaction.trade_date >= start_date)
+        if end_date:
+            closing_legs = closing_legs.filter(LotTransaction.trade_date <= end_date)
+        query = query.filter(TradeLot.id.in_(closing_legs.scalar_subquery()))
+
+    lots = query.order_by(TradeLot.id.desc()).all()
     time_series = pl_over_time(lots)
 
     # Calculate unrealized P/L from positions
@@ -120,5 +131,6 @@ def get_metrics(
     return MetricsResult(
         summary=summary,
         pl_over_time=pl_data_points,
+        closed_lots=lots,
         filters_applied=filters,
     )

@@ -17,7 +17,7 @@
         >
             <div class="form-control">
                 <label class="label py-1"><span class="label-text">Account</span></label>
-                <select name="account_id" class="select select-bordered select-sm">
+                <select name="account_id" class="select select-bordered select-sm" hx-trigger="change" hx-get="/analytics/" hx-include="closest form" hx-target="#analytics-content" hx-swap="innerHTML" hx-push-url="true">
                     <option value="">All Accounts</option>
                     {% for account in accounts %}
                     <option value="{{ account.id }}" {% if filters.account_id == account.id %}selected{% endif %}>
@@ -33,6 +33,12 @@
                     name="start_date"
                     value="{{ filters.start_date or '' }}"
                     class="input input-bordered input-sm"
+                    hx-trigger="change"
+                    hx-get="/analytics/"
+                    hx-include="closest form"
+                    hx-target="#analytics-content"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
                 >
             </div>
             <div class="form-control">
@@ -42,6 +48,12 @@
                     name="end_date"
                     value="{{ filters.end_date or '' }}"
                     class="input input-bordered input-sm"
+                    hx-trigger="change"
+                    hx-get="/analytics/"
+                    hx-include="closest form"
+                    hx-target="#analytics-content"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
                 >
             </div>
             <button type="submit" class="btn btn-sm btn-outline">Filter</button>
@@ -59,6 +71,75 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Chart initialization will be in the partial
+    // Initialize chart from data set by partial template
+    function initPLChart() {
+        const canvas = document.getElementById('plChart');
+        if (!canvas || typeof Chart === 'undefined') return;
+
+        // Destroy existing chart if it exists
+        if (window.plChartInstance) {
+            window.plChartInstance.destroy();
+        }
+
+        // Get data from window variables set by partial
+        const labels = window.plChartLabels;
+        const data = window.plChartData;
+        if (!labels || !data) return;
+
+        const ctx = canvas.getContext('2d');
+        window.plChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Cumulative P/L',
+                    data: data,
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '$' + context.parsed.y.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: { display: true, text: 'Date' }
+                    },
+                    y: {
+                        display: true,
+                        title: { display: true, text: 'P/L ($)' },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(0);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', initPLChart);
+
+    // Reinitialize after HTMX settles content (ensures inline scripts have run)
+    document.body.addEventListener('htmx:afterSettle', function(event) {
+        if (event.detail.target.id === 'analytics-content') {
+            initPLChart();
+        }
+    });
 </script>
 {% endblock %}

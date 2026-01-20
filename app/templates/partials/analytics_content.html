@@ -1,36 +1,66 @@
-<!-- P/L Summary Cards -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="stat bg-base-100 shadow rounded-lg">
-        <div class="stat-title">Realized P/L</div>
-        <div class="stat-value text-lg {% if metrics.summary.total_realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
-            ${{ "%.2f"|format(metrics.summary.total_realized_pl) }}
+<!-- P/L Summary Cards - Compact horizontal layout -->
+{% set total_pl = metrics.summary.total_realized_pl + metrics.summary.total_unrealized_pl %}
+{% set realized_pct = (metrics.summary.total_realized_pl / total_pl * 100) if total_pl != 0 else 0 %}
+{% set unrealized_pct = (metrics.summary.total_unrealized_pl / total_pl * 100) if total_pl != 0 else 0 %}
+
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div class="flex items-center gap-3 bg-base-100 shadow rounded-lg px-4 py-3">
+        <div class="flex-1">
+            <div class="text-xs text-base-content/60 uppercase tracking-wide">Realized P/L</div>
+            <div class="font-semibold {% if metrics.summary.total_realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                ${{ "{:,.2f}".format(metrics.summary.total_realized_pl|float) }}
+            </div>
         </div>
-        <div class="stat-desc">{{ metrics.summary.total_trades }} closed trades</div>
-    </div>
-    <div class="stat bg-base-100 shadow rounded-lg">
-        <div class="stat-title">Unrealized P/L</div>
-        <div class="stat-value text-lg {% if metrics.summary.total_unrealized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
-            ${{ "%.2f"|format(metrics.summary.total_unrealized_pl) }}
+        <div class="text-right">
+            <div class="text-lg font-bold {% if metrics.summary.total_realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                {{ "{:.1f}".format(realized_pct|float) }}%
+            </div>
+            <div class="text-xs text-base-content/60">{{ metrics.summary.total_trades }} trades</div>
         </div>
-        <div class="stat-desc">Open positions</div>
     </div>
-    <div class="stat bg-base-100 shadow rounded-lg">
-        <div class="stat-title">Win Rate</div>
-        <div class="stat-value text-lg">{{ "%.1f"|format(metrics.summary.win_rate * 100) }}%</div>
-        <div class="stat-desc">{{ metrics.summary.winning_trades }}W / {{ metrics.summary.losing_trades }}L</div>
-    </div>
-    <div class="stat bg-base-100 shadow rounded-lg">
-        <div class="stat-title">Total P/L</div>
-        {% set total_pl = metrics.summary.total_realized_pl + metrics.summary.total_unrealized_pl %}
-        <div class="stat-value text-lg {% if total_pl >= 0 %}text-success{% else %}text-error{% endif %}">
-            ${{ "%.2f"|format(total_pl) }}
+
+    <div class="flex items-center gap-3 bg-base-100 shadow rounded-lg px-4 py-3">
+        <div class="flex-1">
+            <div class="text-xs text-base-content/60 uppercase tracking-wide">Unrealized P/L</div>
+            <div class="font-semibold {% if metrics.summary.total_unrealized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                ${{ "{:,.2f}".format(metrics.summary.total_unrealized_pl|float) }}
+            </div>
         </div>
-        <div class="stat-desc">Realized + Unrealized</div>
+        <div class="text-right">
+            <div class="text-lg font-bold {% if metrics.summary.total_unrealized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                {{ "{:.1f}".format(unrealized_pct|float) }}%
+            </div>
+            <div class="text-xs text-base-content/60">Open positions</div>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3 bg-base-100 shadow rounded-lg px-4 py-3">
+        <div class="flex-1">
+            <div class="text-xs text-base-content/60 uppercase tracking-wide">Win Rate</div>
+            <div class="font-semibold">{{ "{:.1f}".format(metrics.summary.win_rate * 100) }}%</div>
+        </div>
+        <div class="text-right">
+            <div class="text-lg font-bold">{{ metrics.summary.winning_trades }}W</div>
+            <div class="text-xs text-base-content/60">{{ metrics.summary.losing_trades }}L</div>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3 bg-base-100 shadow rounded-lg px-4 py-3">
+        <div class="flex-1">
+            <div class="text-xs text-base-content/60 uppercase tracking-wide">Total P/L</div>
+            <div class="font-semibold {% if total_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                ${{ "{:,.2f}".format(total_pl|float) }}
+            </div>
+        </div>
+        <div class="text-right">
+            <div class="text-xs text-base-content/60">Realized +</div>
+            <div class="text-xs text-base-content/60">Unrealized</div>
+        </div>
     </div>
 </div>
 
 <!-- Cumulative P/L Chart -->
-<div class="card bg-base-100 shadow">
+<div class="card bg-base-100 shadow mb-6">
     <div class="card-body">
         <h2 class="card-title">Cumulative P/L Over Time</h2>
         {% if chart_labels %}
@@ -38,67 +68,66 @@
             <canvas id="plChart"></canvas>
         </div>
         <script>
-            // Destroy existing chart if it exists (for HTMX reloads)
-            if (window.plChartInstance) {
-                window.plChartInstance.destroy();
-            }
-
-            const ctx = document.getElementById('plChart').getContext('2d');
-            window.plChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: {{ chart_labels | tojson }},
-                    datasets: [{
-                        label: 'Cumulative P/L',
-                        data: {{ chart_data | tojson }},
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        fill: true,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return '$' + context.parsed.y.toFixed(2);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Date'
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'P/L ($)'
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toFixed(0);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            // Set chart data for initialization by parent template
+            window.plChartLabels = {{ chart_labels | tojson }};
+            window.plChartData = {{ chart_data | tojson }};
         </script>
         {% else %}
         <div class="flex items-center justify-center h-40 text-base-content/60">
             <p>No closed trades yet. Complete some trades to see your P/L chart.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Closed Trades Table -->
+<div class="card bg-base-100 shadow">
+    <div class="card-body">
+        <h2 class="card-title">Closed Trades ({{ metrics.closed_lots|length }})</h2>
+        {% if metrics.closed_lots %}
+        <div class="overflow-x-auto">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Type</th>
+                        <th>Direction</th>
+                        <th class="text-right">Qty</th>
+                        <th class="text-right">P/L</th>
+                        <th>Account</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lot in metrics.closed_lots %}
+                    <tr class="hover">
+                        <td class="font-medium">
+                            {% if lot.instrument_type == "OPTION" %}
+                                {{ lot.symbol }} ${{ "{:.0f}".format(lot.strike_price|float) }} {{ lot.expiration_date.strftime("%m/%d") if lot.expiration_date else "" }} {{ "C" if lot.option_type == "CALL" else "P" }}
+                            {% else %}
+                                {{ lot.symbol }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-sm {% if lot.instrument_type == 'OPTION' %}badge-secondary{% else %}badge-primary{% endif %}">
+                                {{ lot.instrument_type }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-sm badge-outline">{{ lot.direction }}</span>
+                        </td>
+                        <td class="text-right">{{ "{:.0f}".format(lot.total_opened_quantity|float) }}</td>
+                        <td class="text-right font-medium {% if lot.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
+                            ${{ "{:,.2f}".format(lot.realized_pl|float) }}
+                        </td>
+                        <td class="text-xs text-base-content/60">{{ lot.account.name if lot.account else "" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="flex items-center justify-center h-20 text-base-content/60">
+            <p>No closed trades match the current filters.</p>
         </div>
         {% endif %}
     </div>

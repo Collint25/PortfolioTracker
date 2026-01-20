@@ -1,0 +1,158 @@
+{#
+  Reusable table component macros for consistent UI across views.
+#}
+
+{% macro empty_state(message, submessage=none) %}
+{#
+  Empty state display for when no data matches filters.
+
+  Args:
+    message: Primary message to display
+    submessage: Optional secondary/help message
+#}
+<div class="text-center py-8 text-base-content/60">
+    <p>{{ message }}</p>
+    {% if submessage %}
+    <p class="text-sm mt-2">{{ submessage }}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro pagination(page, total_pages, base_url, htmx_target=none, extra_params="") %}
+{#
+  Standard pagination controls.
+
+  Args:
+    page: Current page number (1-indexed)
+    total_pages: Total number of pages
+    base_url: Base URL for pagination links (e.g., "/lots/")
+    htmx_target: Optional HTMX target for partial swaps
+    extra_params: Additional query params to preserve (e.g., "&account_id=1")
+#}
+{% if total_pages > 1 %}
+<div class="flex justify-center mt-4">
+    <div class="join">
+        {% if page > 1 %}
+        <a
+            href="{{ base_url }}?page={{ page - 1 }}{{ extra_params }}"
+            {% if htmx_target %}
+            hx-get="{{ base_url }}?page={{ page - 1 }}{{ extra_params }}"
+            hx-target="{{ htmx_target }}"
+            hx-push-url="true"
+            {% endif %}
+            class="join-item btn btn-sm"
+        >&laquo;</a>
+        {% endif %}
+
+        <span class="join-item btn btn-sm btn-disabled">
+            Page {{ page }} of {{ total_pages }}
+        </span>
+
+        {% if page < total_pages %}
+        <a
+            href="{{ base_url }}?page={{ page + 1 }}{{ extra_params }}"
+            {% if htmx_target %}
+            hx-get="{{ base_url }}?page={{ page + 1 }}{{ extra_params }}"
+            hx-target="{{ htmx_target }}"
+            hx-push-url="true"
+            {% endif %}
+            class="join-item btn btn-sm"
+        >&raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{% macro money_cell(value, show_sign=false) %}
+{#
+  Formatted money cell with color coding.
+
+  Args:
+    value: Numeric value to display
+    show_sign: If true, always show + or - prefix
+#}
+<span class="font-mono {% if value >= 0 %}text-success{% else %}text-error{% endif %}">
+    {% if show_sign and value > 0 %}+{% endif %}${{ "{:,.2f}".format(value|float) }}
+</span>
+{% endmacro %}
+
+
+{% macro badge(text, variant="neutral") %}
+{#
+  Styled badge/tag component.
+
+  Args:
+    text: Badge text
+    variant: Badge style - "success", "error", "warning", "info", "primary", "secondary", "neutral", "outline", "ghost"
+#}
+<span class="badge badge-sm badge-{{ variant }}">{{ text }}</span>
+{% endmacro %}
+
+
+{% macro status_badge(is_closed) %}
+{#
+  Status badge for open/closed state.
+
+  Args:
+    is_closed: Boolean indicating closed status
+#}
+{% if is_closed %}
+<span class="badge badge-sm badge-success">Closed</span>
+{% else %}
+<span class="badge badge-sm badge-outline">Open</span>
+{% endif %}
+{% endmacro %}
+
+
+{% macro type_badge(type_value, is_option=false) %}
+{#
+  Type badge for instrument or transaction types.
+
+  Args:
+    type_value: The type string (e.g., "STOCK", "OPTION", "BUY", "SELL")
+    is_option: If true, use option-specific styling
+#}
+{% if is_option %}
+<span class="badge badge-sm badge-secondary">{{ type_value }}</span>
+{% elif type_value == "STOCK" %}
+<span class="badge badge-sm badge-primary">{{ type_value }}</span>
+{% else %}
+<span class="badge badge-sm badge-neutral">{{ type_value }}</span>
+{% endif %}
+{% endmacro %}
+
+
+{% macro direction_badge(direction) %}
+{#
+  Direction badge for LONG/SHORT positions.
+
+  Args:
+    direction: "LONG" or "SHORT"
+#}
+<span class="badge badge-sm {% if direction == 'LONG' %}badge-info{% else %}badge-warning{% endif %}">
+    {{ direction }}
+</span>
+{% endmacro %}
+
+
+{% macro option_symbol(lot) %}
+{#
+  Formatted option symbol display with strike, expiry, and type.
+
+  Args:
+    lot: Lot object with symbol, strike_price, expiration_date, option_type
+#}
+{{ lot.symbol }}
+{% if lot.instrument_type == "OPTION" %}
+<span class="text-xs text-base-content/60">
+    ${{ "{:.0f}".format(lot.strike_price|float) }}
+    {{ lot.expiration_date.strftime('%m/%d') if lot.expiration_date else "" }}
+    <span class="{% if lot.option_type == 'CALL' %}text-success{% else %}text-error{% endif %}">
+        {{ "C" if lot.option_type == "CALL" else "P" }}
+    </span>
+</span>
+{% endif %}
+{% endmacro %}

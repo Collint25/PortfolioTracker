@@ -1,0 +1,142 @@
+{#
+  Reusable filter control macros for filter bars across views.
+  These provide consistent styling and behavior for common filter patterns.
+#}
+
+{% macro account_select(name, accounts, value, trigger_change=false, htmx_attrs=none) %}
+{#
+  Account dropdown with "All Accounts" option.
+
+  Args:
+    name: Field name (default: "account_id")
+    accounts: List of account objects with .id and .name
+    value: Currently selected account_id (int or None)
+    trigger_change: If true, adds onchange="dispatchFilterChanged()"
+    htmx_attrs: Optional dict of HTMX attributes for individual element triggers
+#}
+<div class="form-control">
+    <label class="label py-1"><span class="label-text">Account</span></label>
+    <select
+        name="{{ name }}"
+        class="select select-bordered select-sm"
+        {% if trigger_change %}onchange="dispatchFilterChanged()"{% endif %}
+        {% if htmx_attrs %}
+            {% for attr, val in htmx_attrs.items() %}{{ attr }}="{{ val }}" {% endfor %}
+        {% endif %}
+    >
+        <option value="">All Accounts</option>
+        {% for account in accounts %}
+        <option value="{{ account.id }}" {% if value == account.id %}selected{% endif %}>
+            {{ account.name }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+
+{% macro date_range(start_name, end_name, start_value, end_value, trigger_change=false, htmx_attrs=none) %}
+{#
+  Date range picker with start and end date inputs.
+
+  Args:
+    start_name: Field name for start date (default: "start_date")
+    end_name: Field name for end date (default: "end_date")
+    start_value: Current start date (date object or None)
+    end_value: Current end date (date object or None)
+    trigger_change: If true, adds onchange="dispatchFilterChanged()"
+    htmx_attrs: Optional dict of HTMX attributes for individual element triggers
+#}
+<div class="form-control">
+    <label class="label py-1"><span class="label-text">Start Date</span></label>
+    <input
+        type="date"
+        name="{{ start_name }}"
+        value="{{ start_value.isoformat() if start_value else '' }}"
+        class="input input-bordered input-sm"
+        {% if trigger_change %}onchange="dispatchFilterChanged()"{% endif %}
+        {% if htmx_attrs %}
+            {% for attr, val in htmx_attrs.items() %}{{ attr }}="{{ val }}" {% endfor %}
+        {% endif %}
+    >
+</div>
+<div class="form-control">
+    <label class="label py-1"><span class="label-text">End Date</span></label>
+    <input
+        type="date"
+        name="{{ end_name }}"
+        value="{{ end_value.isoformat() if end_value else '' }}"
+        class="input input-bordered input-sm"
+        {% if trigger_change %}onchange="dispatchFilterChanged()"{% endif %}
+        {% if htmx_attrs %}
+            {% for attr, val in htmx_attrs.items() %}{{ attr }}="{{ val }}" {% endfor %}
+        {% endif %}
+    >
+</div>
+{% endmacro %}
+
+
+{% macro simple_select(name, label, options, value, trigger_change=false) %}
+{#
+  Generic select dropdown for simple option lists.
+
+  Args:
+    name: Field name
+    label: Display label
+    options: List of dicts with 'value' and 'label' keys, or list of strings
+    value: Currently selected value
+    trigger_change: If true, adds onchange="dispatchFilterChanged()"
+#}
+<div class="form-control">
+    <label class="label py-1"><span class="label-text">{{ label }}</span></label>
+    <select
+        name="{{ name }}"
+        class="select select-bordered select-sm"
+        {% if trigger_change %}onchange="dispatchFilterChanged()"{% endif %}
+    >
+        <option value="">All</option>
+        {% for opt in options %}
+            {% set opt_value = opt.value if opt.value is defined else opt %}
+            {% set opt_label = opt.label if opt.label is defined else opt %}
+            <option value="{{ opt_value }}" {% if value == opt_value %}selected{% endif %}>
+                {{ opt_label }}
+            </option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+
+{% macro symbol_select(name, symbols, value) %}
+{#
+  Symbol dropdown for filtering by ticker symbol.
+
+  Args:
+    name: Field name (default: "symbol")
+    symbols: List of symbol strings
+    value: Currently selected symbol
+#}
+<div class="form-control">
+    <label class="label py-1"><span class="label-text">Symbol</span></label>
+    <select name="{{ name }}" class="select select-bordered select-sm">
+        <option value="">All Symbols</option>
+        {% for symbol in symbols %}
+        <option value="{{ symbol }}" {% if value == symbol %}selected{% endif %}>
+            {{ symbol }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+
+{% macro filter_buttons(clear_url) %}
+{#
+  Standard filter and clear buttons for filter forms.
+
+  Args:
+    clear_url: URL to clear all filters
+#}
+<button type="submit" class="btn btn-sm btn-outline">Filter</button>
+<a href="{{ clear_url }}" class="btn btn-sm btn-ghost">Clear</a>
+{% endmacro %}

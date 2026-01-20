@@ -1,3 +1,5 @@
+{% from "macros/table_components.html" import empty_state, pagination, money_cell, status_badge, direction_badge %}
+
 {% if match_result %}
 <div class="alert alert-success mb-4">
     <span>Auto-match complete: {{ match_result.created }} lots created from {{ match_result.options_processed }} option contracts and {{ match_result.stocks_processed }} stock positions.</span>
@@ -38,29 +40,19 @@
                         {{ lot.instrument_type }}
                     </span>
                 </td>
-                <td>
-                    <span class="badge badge-sm {% if lot.direction == 'LONG' %}badge-info{% else %}badge-warning{% endif %}">
-                        {{ lot.direction }}
-                    </span>
-                </td>
+                <td>{{ direction_badge(lot.direction) }}</td>
                 <td>
                     {{ lot.total_opened_quantity|int }}
                     {% if not lot.is_closed and lot.total_closed_quantity > 0 %}
                     <span class="text-xs text-base-content/60">({{ lot.total_closed_quantity|int }} closed)</span>
                     {% endif %}
                 </td>
-                <td>
+                <td>{{ status_badge(lot.is_closed) }}</td>
+                <td class="text-right">
                     {% if lot.is_closed %}
-                    <span class="badge badge-sm badge-success">Closed</span>
+                    {{ money_cell(lot.realized_pl) }}
                     {% else %}
-                    <span class="badge badge-sm badge-outline">Open</span>
-                    {% endif %}
-                </td>
-                <td class="text-right font-mono {% if lot.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
-                    {% if lot.is_closed %}
-                    ${{ "%.2f"|format(lot.realized_pl) }}
-                    {% else %}
-                    -
+                    <span class="text-base-content/40">-</span>
                     {% endif %}
                 </td>
                 <td>
@@ -81,24 +73,8 @@
     </table>
 </div>
 
-<!-- Pagination -->
-{% if total_pages > 1 %}
-<div class="flex justify-center mt-4">
-    <div class="join">
-        {% if page > 1 %}
-        <a href="/lots/?page={{ page - 1 }}" class="join-item btn btn-sm">«</a>
-        {% endif %}
-        <span class="join-item btn btn-sm btn-disabled">Page {{ page }} of {{ total_pages }}</span>
-        {% if page < total_pages %}
-        <a href="/lots/?page={{ page + 1 }}" class="join-item btn btn-sm">»</a>
-        {% endif %}
-    </div>
-</div>
-{% endif %}
+{{ pagination(page, total_pages, "/lots/") }}
 
 {% else %}
-<div class="text-center py-8 text-base-content/60">
-    <p>No lots found.</p>
-    <p class="text-sm mt-2">Click "Run Auto-Match" to link opening and closing transactions.</p>
-</div>
+{{ empty_state("No lots found.", "Click \"Run Auto-Match\" to link opening and closing transactions.") }}
 {% endif %}

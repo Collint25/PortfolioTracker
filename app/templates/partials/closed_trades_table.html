@@ -1,0 +1,48 @@
+{#
+  Closed trades table for analytics page.
+  Expects: lots (list of closed TradeLot objects)
+#}
+{% from "macros/table_components.html" import empty_state, money_cell, badge, direction_badge, option_symbol %}
+
+{% if lots %}
+<div class="overflow-x-auto">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Type</th>
+                <th>Direction</th>
+                <th class="text-right">Qty</th>
+                <th class="text-right">P/L</th>
+                <th>Account</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lot in lots %}
+            <tr class="hover">
+                <td class="font-medium">
+                    {% if lot.instrument_type == "OPTION" %}
+                        {{ lot.symbol }} ${{ "{:.0f}".format(lot.strike_price|float) }} {{ lot.expiration_date.strftime("%m/%d") if lot.expiration_date else "" }} {{ "C" if lot.option_type == "CALL" else "P" }}
+                    {% else %}
+                        {{ lot.symbol }}
+                    {% endif %}
+                </td>
+                <td>
+                    {{ badge(lot.instrument_type, "secondary" if lot.instrument_type == "OPTION" else "primary") }}
+                </td>
+                <td>
+                    {{ direction_badge(lot.direction) }}
+                </td>
+                <td class="text-right">{{ "{:.0f}".format(lot.total_opened_quantity|float) }}</td>
+                <td class="text-right font-medium">
+                    {{ money_cell(lot.realized_pl) }}
+                </td>
+                <td class="text-xs text-base-content/60">{{ lot.account.name if lot.account else "" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+{{ empty_state("No closed trades match the current filters.") }}
+{% endif %}

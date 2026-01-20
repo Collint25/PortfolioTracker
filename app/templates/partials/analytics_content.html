@@ -114,51 +114,8 @@
 <div class="card bg-base-100 shadow">
     <div class="card-body">
         <h2 class="card-title">Closed Trades ({{ metrics.closed_lots|length }})</h2>
-        {% if metrics.closed_lots %}
-        <div class="overflow-x-auto">
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Symbol</th>
-                        <th>Type</th>
-                        <th>Direction</th>
-                        <th class="text-right">Qty</th>
-                        <th class="text-right">P/L</th>
-                        <th>Account</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for lot in metrics.closed_lots %}
-                    <tr class="hover">
-                        <td class="font-medium">
-                            {% if lot.instrument_type == "OPTION" %}
-                                {{ lot.symbol }} ${{ "{:.0f}".format(lot.strike_price|float) }} {{ lot.expiration_date.strftime("%m/%d") if lot.expiration_date else "" }} {{ "C" if lot.option_type == "CALL" else "P" }}
-                            {% else %}
-                                {{ lot.symbol }}
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge badge-sm {% if lot.instrument_type == 'OPTION' %}badge-secondary{% else %}badge-primary{% endif %}">
-                                {{ lot.instrument_type }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge badge-sm badge-outline">{{ lot.direction }}</span>
-                        </td>
-                        <td class="text-right">{{ "{:.0f}".format(lot.total_opened_quantity|float) }}</td>
-                        <td class="text-right font-medium {% if lot.realized_pl >= 0 %}text-success{% else %}text-error{% endif %}">
-                            ${{ "{:,.2f}".format(lot.realized_pl|float) }}
-                        </td>
-                        <td class="text-xs text-base-content/60">{{ lot.account.name if lot.account else "" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="flex items-center justify-center h-20 text-base-content/60">
-            <p>No closed trades match the current filters.</p>
-        </div>
-        {% endif %}
+        {% with lots=metrics.closed_lots %}
+        {% include "partials/closed_trades_table.html" %}
+        {% endwith %}
     </div>
 </div>
